@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>تعلیمی جائزہ فارم (کلاس وار)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    @font-face {
+      font-family: 'Jameel Noori Nastaleeq';
+      src: url('https://cdn.jsdelivr.net/gh/font-to-width/jameel-noori-nastaleeq-regular@1.1/jameel-noori-nastaleeq-regular.woff2') format('woff2');
+      font-display: swap;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: #e5edf5;
+      font-size: 14px; /* overall text bigger */
+    }
+    .urdu {
+  font-family: 'Jameel Noori Nastaleeq', system-ui, sans-serif;
+  line-height: 1.8;
+}
+    input, select, textarea, button {
+      font-size: 13px !important;  /* form text bigger on mobile + desktop */
+    }
+    ::placeholder {
+      font-size: 12px;
+    }
+    /* ═══════════════════════════════════════════════════════
+   YEH PURA CSS apne <style> tag ke ANDAR,
+   existing CSS ke BAAD, @media print se PEHLE add karein
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── 1. HEADING CENTER ─── */
+body.pdf-mode h1.urdu {
+  display: block !important;
+  text-align: center !important;
+  font-size: 26px !important;
+  color: #0c4a6e !important;
+  border-bottom: 2.5px solid #0ea5e9 !important;
+  padding-bottom: 6px !important;
+  margin-bottom: 4px !important;
+}
+body.pdf-mode #subtitle {
+  display: block !important;
+  text-align: center !important;
+  color: #374151 !important;
+  font-size: 14px !important;
+  margin-bottom: 8px !important;
+}
+/* Header flex row → block + center */
+body.pdf-mode .max-w-6xl > div:first-child {
+  display: block !important;
+  text-align: center !important;
+  margin-bottom: 12px !important;
+}
+
+/* ─── 2. CLASS CARD — Navy Blue Header ─── */
+body.pdf-mode .class-card {
+  border: 2.5px solid #1e3a5f !important;
+  border-radius: 10px !important;
+  margin-top: 22px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+  background: white !important;
+  
+}
+
+/* Class top row (class select + remove btn) → Navy Blue */
+body.pdf-mode .class-card > div.border-b {
+  background: linear-gradient(to left, #0f3460, #1d4ed8) !important;
+  color: white !important;
+  padding: 10px 16px !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+}
+body.pdf-mode .class-card > div.border-b label {
+  color: #bfdbfe !important;
+  font-size: 11px !important;
+}
+body.pdf-mode .class-card > div.border-b select.class-select {
+  background: rgba(255,255,255,0.18) !important;
+  color: white !important;
+  border: 1px solid rgba(255,255,255,0.5) !important;
+  font-size: 15px !important;
+  font-weight: bold !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+}
+
+/* Class body area */
+body.pdf-mode .class-body {
+  padding: 12px !important;
+  display: block !important;
+  background: #ffffff !important;
+}
+
+/* ─── 3. BOOK CARD — Green Border & Tint ─── */
+body.pdf-mode .book-card {
+  border: 1.5px solid #d1d5db !important;
+  border-right: 5px solid #059669 !important; /* Green right border (RTL start) */
+  border-radius: 8px 0 0 8px !important;
+  margin: 10px 0 !important;
+  padding: 0 !important;
+  background: #f0fdf9 !important;
+  break-inside: avoid !important;
+  overflow: hidden !important;
+}
+
+/* Book card top row (teacher + book dropdowns) → Light green header */
+body.pdf-mode .book-card > div:first-child {
+  background: #d1fae5 !important;
+  padding: 8px 12px !important;
+  margin: 0 !important;
+  border-bottom: 1px solid #6ee7b7 !important;
+}
+body.pdf-mode .book-card > div:first-child label {
+  color: #065f46 !important;
+  font-weight: 600 !important;
+}
+body.pdf-mode .book-card > div:first-child select {
+  background: white !important;
+  border: 1px solid #6ee7b7 !important;
+  font-weight: bold !important;
+  color: #064e3b !important;
+}
+
+/* Book card inner content padding */
+body.pdf-mode .book-card > div:not(:first-child) {
+  padding: 8px 12px !important;
+}
+
+/* ─── 4. CLASS SUMMARY BAR (% + Grade) ─── */
+body.pdf-mode .class-body > div.border-t {
+  background: #f0fdf4 !important;
+  border: 1.5px solid #6ee7b7 !important;
+  border-radius: 6px !important;
+  padding: 10px !important;
+  margin-top: 12px !important;
+  border-top: none !important;
+}
+
+/* ─── 5. TABLE IMPROVEMENTS ─── */
+body.pdf-mode table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+body.pdf-mode table th {
+  background: #d1fae5 !important;
+  color: #065f46 !important;
+  font-weight: bold !important;
+  padding: 6px 8px !important;
+  border: 1px solid #6b7280 !important;
+}
+body.pdf-mode table td {
+  border: 1px solid #9ca3af !important;
+  padding: 5px 8px !important;
+}
+body.pdf-mode table tr:nth-child(even) td {
+  background: #f8fafc !important;
+}
+
+/* ─── 6. BOOK PERCENT — Badge style ─── */
+body.pdf-mode .book-percent {
+  background: #fef3c7 !important;
+  border: 1.5px solid #f59e0b !important;
+  font-weight: bold !important;
+  font-size: 15px !important;
+  border-radius: 6px !important;
+}
+body.pdf-mode .class-percent {
+  background: #fef9c3 !important;
+  border: 2px solid #eab308 !important;
+  font-weight: bold !important;
+  font-size: 16px !important;
+  border-radius: 6px !important;
+}
+body.pdf-mode #classes-container .class-card:not(:first-child) {
+  page-break-before: always !important;
+  break-before: page !important;
+  margin-top: 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   @media print bhi update karein (pura replace karein)
+   ═══════════════════════════════════════════════════════ */
+@media print {
+  #classes-container .class-card:not(:first-child) {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+  @page { size: A4; margin: 12mm; }
+
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  body, html { direction: rtl !important; background: white !important; margin: 0 !important; padding: 0 !important; }
+  .max-w-6xl { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+
+  /* CRITICAL: Sabhi class bodies dikhao */
+  .class-body, .class-body.hidden {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Buttons hide */
+  button, #dashboard-back-btn, #loader, #info-box, #error-box, #success-box,
+  .add-book-btn, .remove-book-btn, .remove-class-btn, .toggle-body-btn, #enable-edit-btn {
+    display: none !important;
+  }
+
+  /* Heading center */
+  h1.urdu { text-align: center !important; display: block !important; font-size: 26px !important; color: #0c4a6e !important; border-bottom: 2px solid #0ea5e9 !important; padding-bottom: 6px !important; }
+  #subtitle { text-align: center !important; display: block !important; }
+  .max-w-6xl > div:first-child { display: block !important; text-align: center !important; }
+
+  /* Class card */
+  .class-card { border: 2.5px solid #1e3a5f !important; border-radius: 10px !important; margin-top: 20px !important; padding: 0 !important; overflow: hidden !important; box-shadow: none !important; }
+  .class-card > div.border-b { background: #1e3a5f !important; color: white !important; padding: 10px 16px !important; }
+  .class-card > div.border-b label { color: #bfdbfe !important; }
+  .class-card > div.border-b select { color: white !important; background: rgba(255,255,255,0.15) !important; font-weight: bold !important; font-size: 14px !important; border: none !important; }
+
+  /* Book card */
+  .book-card { border: 1.5px solid #d1d5db !important; border-right: 5px solid #059669 !important; border-radius: 8px 0 0 8px !important; margin: 10px 0 !important; padding: 0 !important; background: #f0fdf9 !important; break-inside: avoid !important; overflow: hidden !important; }
+  .book-card > div:first-child { background: #d1fae5 !important; padding: 8px 12px !important; border-bottom: 1px solid #6ee7b7 !important; }
+  .book-card > div:not(:first-child) { padding: 8px 12px !important; }
+
+  /* Inputs */
+  input[type="text"], input[type="number"], select { border: none !important; border-bottom: 1px dashed #555 !important; background: transparent !important; color: black !important; }
+  textarea { border: 1px solid #aaa !important; width: 100% !important; color: black !important; }
+
+  /* Table */
+  table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; }
+  th, td { border: 1px solid #555 !important; padding: 6px !important; text-align: right !important; }
+  th { background-color: #d1fae5 !important; font-weight: bold !important; }
+  th:nth-child(1), td:nth-child(1) { width: 5% !important; text-align: center !important; }
+  th:nth-child(2), td:nth-child(2) { width: 70% !important; }
+  th:nth-child(3), td:nth-child(3) { width: 25% !important; text-align: center !important; }
+
+  /* Checkboxes */
+  .point-checkbox { display: inline-block !important; appearance: auto !important; -webkit-appearance: auto !important; }
+
+  /* Percent badges */
+  .book-percent, .class-percent { background: #fef3c7 !important; border: 1px solid #f59e0b !important; font-weight: bold !important; }
+  .class-grade { background: #d1fae5 !important; border: 1px solid #059669 !important; font-weight: bold !important; }
+
+  .bg-sky-900 { background-color: #0c4a6e !important; color: white !important; padding: 8px !important; border-radius: 8px !important; }
+}
+  </style>
+</head>
+<body class="min-h-screen p-3 md:p-6">
+
+<!-- Loader -->
+<div id="loader" class="fixed inset-0 bg-gray-900 bg-opacity-40 flex items-center justify-center hidden z-50">
+  <div class="w-10 h-10 border-4 border-gray-200 border-t-teal-500 rounded-full animate-spin"></div>
+</div>
+
+<div class="max-w-6xl mx-auto space-y-4">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold urdu">تعلیمی جائزہ فارم</h1>
+      <p id="subtitle" class="text-sm md:text-base text-gray-600 mt-1"></p>
+    </div>
+    <a href="index.html"
+       id="dashboard-back-btn"
+       class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm md:text-base bg-white shadow border border-gray-200 hover:bg-gray-50">
+      ← ڈیش بورڈ
+</a>
+  </div>
+ 
+  <!-- Alerts -->
+  <div id="error-box" class="hidden p-3 rounded-lg bg-red-100 text-red-700 text-sm urdu"></div>
+  <!-- Naya Full-Screen Success Modal -->
+<div id="success-box" class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[110] p-4">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 max-w-sm w-full text-center transform transition-all">
+    <!-- Green Check Icon -->
+    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 mb-4">
+      <svg class="h-10 w-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+    </div>
+    <h3 class="text-xl md:text-2xl font-bold text-gray-900 urdu mb-2">کامیابی!</h3>
+    <p id="success-msg-text" class="text-base text-gray-600 urdu mb-6 leading-relaxed"></p>
+    <button type="button" id="close-success-btn" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2.5 bg-emerald-600 text-base font-bold text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 urdu">
+      ٹھیک ہے
+    </button>
+  </div>
+</div>
+
+  <!-- Jamia overall summary -->
+  <div class="bg-sky-900 text-white rounded-xl shadow px-4 py-3 flex flex-wrap items-center gap-4 text-sm urdu">
+    <span class="font-semibold">جامعہ کا مجموعی فیصد:</span>
+    <span id="jamia-percent" class="font-bold text-2xl md:text-3xl bg-yellow-400 text-black px-3 py-1 rounded-lg">0</span>
+    <span class="font-semibold ml-4">جامعہ کا مجموعی کیفیت:</span>
+    <span id="jamia-grade" class="font-bold text-xl md:text-2xl px-3 py-1 rounded-lg bg-emerald-500">-</span>
+
+    <!-- NEW: total classes & books -->
+    <span class="font-semibold ml-4">کل کلاسیں:</span>
+    <span id="total-classes" class="font-bold text-lg bg-white/10 px-2 py-0.5 rounded">0</span>
+    <span class="font-semibold ml-2">کل کتابیں:</span>
+    <span id="total-books" class="font-bold text-lg bg-white/10 px-2 py-0.5 rounded">0</span>
+  </div>
+
+  <!-- Info -->
+  <div id="info-box" class="bg-white rounded-xl shadow p-3 md:p-4 text-sm text-gray-700 urdu leading-relaxed">
+    <p class="mb-1">
+      ہر کلاس کے لیے جتنی ضرورت ہو اتنی کتابیں شامل کریں، ہر کتاب میں زیادہ سے زیادہ
+      <span class="font-semibold">۵ سوالات</span> درج کریں (کم ہوں تو باقی خانے خالی چھوڑ دیں)۔
+    </p>
+    <p>
+      ہر کتاب کا فیصد: ہر سوال میں درست جواب دینے والے طلبہ کی اوسط مقدار / <span class="font-semibold">حاضر طلبہ</span> × 100  
+      پھر تمام کتابوں کے فیصد کا اوسط لے کر اس کلاس کا مجموعی فیصد، اور تمام کلاسوں کا اوسط جامعہ کا فیصد بنے گا۔
+    </p>
+  </div>
+
+  <!-- Form -->
+  <form id="jaiza-form" class="space-y-4" novalidate>
+    <div class="flex justify-between items-center">
+      <h2 class="text-base md:text-lg font-semibold urdu">کلاس وار جائزہ</h2>
+      <button type="button" id="add-class-btn"
+              class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm urdu">
+        + نئی کلاس شامل کریں
+      </button>
+    </div>
+
+    <div id="classes-container" class="space-y-4"></div>
+
+    <div class="bg-white rounded-xl shadow px-3 md:px-4 py-3 flex justify-end gap-2">
+      
+      <!-- NAYA PDF BUTTON -->
+      <button type="button"
+              id="print-pdf-btn"
+              class="px-4 md:px-6 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm urdu font-semibold">
+        PDF بنائیں
+      </button>
+
+      <!-- Existing Update / Edit button -->
+      <button type="button"
+              id="enable-edit-btn"
+              class="px-4 md:px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm urdu font-semibold">
+        اپ ڈیٹ / تدوین
+      </button>
+
+      <!-- Existing Submit button -->
+      <button type="submit"
+              class="px-4 md:px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm urdu font-semibold">
+        جائزہ محفوظ کریں
+      </button>
+    </div>
+  </form>
+</div>
+
+<script type="module">
+/*************** Firebase setup ***************/
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { app, auth, db } from "./shared/firebase-init.js";
+import { replaceDocs } from "./shared/recycle-bin.js";
+import { 
+  getFirestore, collection, query, where, getDocs, addDoc, deleteDoc, 
+  getDoc, doc, updateDoc, serverTimestamp // updateDoc yahan add kiya hai
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// Firebase ab shared/firebase-init.js se aata hai (config sirf ek jagah, duplicate-app error nahi aata)
+
+
+/*************** DOM refs ***************/
+const loader           = document.getElementById("loader");
+const subtitle         = document.getElementById("subtitle");
+const errorBox         = document.getElementById("error-box");
+const successBox       = document.getElementById("success-box");
+const jamiaPercEl      = document.getElementById("jamia-percent");
+const jamiaGradeEl     = document.getElementById("jamia-grade");
+const totalClassesEl   = document.getElementById("total-classes");
+const totalBooksEl     = document.getElementById("total-books");
+const classesContainer = document.getElementById("classes-container");
+const addClassBtn      = document.getElementById("add-class-btn");
+const formEl           = document.getElementById("jaiza-form");
+const enableEditBtn    = document.getElementById("enable-edit-btn");
+
+const showLoader = (v) => loader.classList.toggle("hidden", !v);
+const showError  = (msg) => { errorBox.textContent = msg; errorBox.classList.remove("hidden"); };
+const clearError = () => errorBox.classList.add("hidden");
+const showSuccess = (msg) => { 
+  document.getElementById("success-msg-text").textContent = msg; 
+  successBox.classList.remove("hidden"); 
+};
+const clearSuccess = () => successBox.classList.add("hidden");
+
+// Popup band karne ke liye button par click event
+document.getElementById("close-success-btn").addEventListener("click", clearSuccess);
+
+/*************** URL params ***************/
+const params   = new URLSearchParams(window.location.search);
+const jamiaId  = params.get("jamia");
+const monthKey = params.get("month");
+
+const urduMonths = ["جنوری", "فروری", "مارچ", "اپریل", "مئی", "جون", "جولائی", "اگست", "ستمبر", "اکتوبر", "نومبر", "دسمبر"];
+
+if (!jamiaId || !monthKey) {
+  showError("URL میں جامعہ اور مہینہ دونوں کا ہونا ضروری ہے، مثلاً ?jamia=Latoor&month=2025-11");
+} else {
+  const [yearStr, monthStr] = monthKey.split("-");
+  const mIndex = parseInt(monthStr, 10) - 1;
+  const monthName = urduMonths[mIndex] || monthKey; // Mahine ka naam nikalega
+  
+  // Is code se heading aur mahina print aur screen dono jagah bada aur center ho jayega
+  // Is code se heading aur mahina print aur screen dono jagah bada aur center ho jayega
+          subtitle.innerHTML = `<div style="text-align: center; margin-top: 8px;">
+            <span class="text-xl md:text-2xl font-bold text-gray-800 urdu" id="header-jamia-name">جامعہ: ${decodeURIComponent(jamiaId)}</span> 
+            <span class="mx-3 text-gray-400">|</span> 
+            <span class="text-lg md:text-xl font-semibold text-gray-700 urdu">مہینہ: ${monthName} ${yearStr}</span>
+          </div>`;
+}
+
+let currentUser = null;
+let classCount  = 0;
+let isFormDirty = false; // Ye track karega ki user ne kuch likha hai ya nahi
+
+// className -> [{teacherName, bookName}, ...]
+let globalMonthDetails = null; // <-- NAYA
+let currentSem = "1";          // <-- NAYA
+let teachingMap = {};
+let classList   = [];
+
+// NEW: edit mode state (default editable; existing data pe read-only)
+let isEditMode = true;
+
+/*************** Edit mode toggle helper ***************/
+const toggleEditMode = (editable) => {
+  isEditMode = editable;
+
+  // saare input/select/textarea disable/enable
+  const fields = classesContainer.querySelectorAll("input, select, textarea");
+  fields.forEach(el => {
+    el.disabled = !editable;
+  });
+
+  // book/class add/remove buttons
+  const actionBtns = classesContainer.querySelectorAll(".add-book-btn, .remove-book-btn, .remove-class-btn");
+  actionBtns.forEach(btn => {
+    btn.disabled = !editable;
+  });
+
+  if (addClassBtn) addClassBtn.disabled = !editable;
+
+  const submitBtn = formEl.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = !editable;
+};
+
+/*************** Helpers ***************/
+const getGrade = (p) => {
+  if (p >= 80) return "ممتاز";
+  if (p >= 60) return "بہتر";
+  if (p >= 40) return "مناسب";
+  if (p > 0)   return "کمزور";
+  return "-";
+};
+
+const getMonthInfoFromKey = (key) => {
+  if (!key) return null;
+  const [yStr, mStr] = key.split("-");
+  const yearNum  = parseInt(yStr);
+  const monthNum = parseInt(mStr) - 1;
+  if (isNaN(yearNum) || isNaN(monthNum)) return null;
+
+  const academicYear = monthNum >= 3 ? `${yearNum}-${yearNum+1}` : `${yearNum-1}-${yearNum}`;
+  return { yearNum, monthNum, academicYear };
+};
+
+/*************** Load teaching structure ***************/
+const loadTeachingStructure = async (user) => {
+  teachingMap = {};
+  classList   = [];
+
+  const info = getMonthInfoFromKey(monthKey);
+  if (!info) {
+    showError("مہینے کا فارمیٹ درست نہیں (YYYY-MM).");
+    return;
+  }
+  const { academicYear } = info;
+
+  try {
+    // --- NAYA CODE: Admin Setup se Month Details fetch karna ---
+    try {
+      const configSnap = await getDoc(doc(db, "settings", "academic_config"));
+      if (configSnap.exists()) {
+        globalMonthDetails = configSnap.data().monthDetails;
+      }
+    } catch(e) { console.log("Config load error:", e); }
+
+    // Is mahine (jo URL me hai) ka semester pata lagana
+    if (globalMonthDetails) {
+      const mData = globalMonthDetails[info.monthNum];
+      if (mData) {
+        const s1 = parseInt(mData.sem1) || 0;
+        const s2 = parseInt(mData.sem2) || 0;
+        // Jis sem ke din is mahine me zyada hain, wo active hoga
+        currentSem = (s2 > s1) ? "2" : "1";
+      }
+    }
+    // -----------------------------------------------------------
+
+    // users collection se academicYears + karkardagiStructure lena
+    const userDocRef  = doc(db, "users", user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (!userDocSnap.exists()) {
+      showError("یوزر پروفائل نہیں ملا، پہلے کارکردگی والا سیٹ اپ مکمل کریں۔");
+      return;
+    }
+
+    const userData     = userDocSnap.data() || {};
+    const years        = userData.academicYears || {};
+    const yearData     = years[academicYear];
+
+    if (!yearData || !Array.isArray(yearData.karkardagiStructure)) {
+      showError("اس تعلیمی سال کے لیے کارکردگی کا سیٹ اپ نہیں ملا، پہلے Karkardagi Setup مکمل کریں۔");
+      return;
+    }
+
+    const jamiaName = decodeURIComponent(jamiaId || "");
+
+    // Sirf current jamia ka structure use karna
+    const jamiaStruct = yearData.karkardagiStructure.find(j => j.jamiaName === jamiaName);
+
+    if (!jamiaStruct || !Array.isArray(jamiaStruct.teachers)) {
+      showError("اس جامعہ کے لیے کارکردگی سیٹ اپ خالی ہے، اس لیے کلاس/استاذ/کتاب نہیں مل رہیں۔");
+      return;
+    }
+
+    // teacher + unke periods (class + book) ko map me daalna
+    (jamiaStruct.teachers || []).forEach(t => {
+      const teacherName = t.name || t.teacherName || t.ustad || "";
+      (t.periods || []).forEach(p => {
+        const className = p.className || p.class || p.darja || "";
+        const bookName  = p.bookName  || p.book  || p.kitab || p.subject || "";
+        const dbSem     = String(p.semester || p.sem || ""); // <-- NAYA: Semester ki field nikalna
+
+        if (!className || !teacherName || !bookName) return;
+
+        if (!teachingMap[className]) teachingMap[className] = [];
+        
+        // NAYA: dbSem ko bhi map me store kar rahe hain taake filter me kaam aaye
+        teachingMap[className].push({ teacherName, bookName, dbSem });
+      });
+    });
+
+    classList = Object.keys(teachingMap).sort();
+
+    if (!classList.length) {
+      showError("اس جامعہ کے لیے کسی بھی کلاس / کتاب کا پیریڈ سیٹ نہیں کیا گیا، اس لیے dropdown خالی ہیں۔");
+    }
+
+  } catch (err) {
+    console.error(err);
+    showError("کارکردگی سیٹ اپ لوڈ کرتے وقت مسئلہ آیا، بعد میں دوبارہ کوشش کریں۔");
+  }
+};
+
+/*************** Book % from its 5 questions (uses حاضر طلبہ) ***************/
+const recalcSingleBookPercent = (bookCard, card) => {
+  const presentStudents = Number(card.querySelector(".present-students")?.value || 0);
+  const qRows = bookCard.querySelectorAll(".question-row");
+  let sum = 0;
+  let count = 0;
+
+  qRows.forEach(row => {
+    const qText = row.querySelector(".q-text")?.value.trim() || "";
+    const corr  = Number(row.querySelector(".q-correct")?.value || 0);
+
+    // ✅ sirf woh sawal count karein jo waqai poocha gaya ho
+    // (text likha ho), chahe correct 0 ho
+    if (qText) {
+      sum += corr;   // 0 bhi include hoga
+      count++;
+    }
+  });
+
+  const percEl = bookCard.querySelector(".book-percent");
+
+  // agar koi sawal hi nahi poocha gaya ya presentStudents 0 hai
+  if (!presentStudents || !count) {
+    percEl.value = "";
+    return null;
+  }
+
+  const avgCorrect = sum / count;                  // jitne sawal pooche gaye unka avg
+  const percentage = (avgCorrect / presentStudents) * 100;
+  const rounded    = Math.round(percentage * 10) / 10;
+  percEl.value     = rounded.toFixed(1) + "%";
+  return rounded;
+};
+
+/*************** Class % from all book % ***************/
+const recalcClassPercent = (card) => {
+  const books = card.querySelectorAll(".book-card");
+  const percs = [];
+  books.forEach(b => {
+    const pStr = b.querySelector(".book-percent")?.value;
+    if (!pStr) return;
+    const num = Number(pStr.replace("%","").trim());
+    if (!isNaN(num)) percs.push(num);
+  });
+
+  const classPercInput  = card.querySelector(".class-percent");
+  const classGradeInput = card.querySelector(".class-grade");
+
+  if (!percs.length) {
+    classPercInput.value  = "";
+    classGradeInput.value = "-";
+    return;
+  }
+
+  const sum = percs.reduce((a,b)=>a+b,0);
+  const avg = Math.round((sum/percs.length)*10)/10;
+  classPercInput.value  = avg.toFixed(1) + "%";
+  classGradeInput.value = getGrade(avg);
+};
+
+/*************** Jamia overall % + total classes/books ***************/
+const recalcJamia = () => {
+  const cards = classesContainer.querySelectorAll(".class-card");
+  const percs = [];
+  let totalClasses = 0;
+  let totalBooks   = 0;
+
+  cards.forEach(card => {
+    const bookCards = card.querySelectorAll(".book-card");
+    let anyBookHasData = false;
+
+    bookCards.forEach(b => {
+      const teacherVal = (b.querySelector(".book-teacher")?.value || "").trim();
+      const bookVal    = (b.querySelector(".book-name")?.value || "").trim();
+      const percVal    = (b.querySelector(".book-percent")?.value || "").trim();
+      if (teacherVal || bookVal || percVal) {
+        anyBookHasData = true;
+        totalBooks++;
+      }
+    });
+
+    if (anyBookHasData) {
+      totalClasses++;
+      const pStr = card.querySelector(".class-percent")?.value;
+      if (pStr) {
+        const num = Number(pStr.replace("%","").trim());
+        if (!isNaN(num)) percs.push(num);
+      }
+    }
+  });
+
+  if (totalClassesEl) totalClassesEl.textContent = String(totalClasses);
+  if (totalBooksEl)   totalBooksEl.textContent   = String(totalBooks);
+
+  if (!percs.length) {
+    jamiaPercEl.textContent  = "0";
+    jamiaGradeEl.textContent = "-";
+    return;
+  }
+
+  const sum = percs.reduce((a,b)=>a+b,0);
+  const avg = Math.round((sum/percs.length)*100)/100;
+  jamiaPercEl.textContent  = avg.toFixed(2);
+  jamiaGradeEl.textContent = getGrade(avg);
+};
+
+/*************** ONE book card ***************/
+const createBookCard = (card) => {
+  const classSelect         = card.querySelector(".class-select");
+  const totalStudentsInput  = card.querySelector(".total-students");
+  const presentStudentsInput= card.querySelector(".present-students");
+
+  const bookCard = document.createElement("div");
+  bookCard.className = "book-card border rounded-lg p-2 md:p-3 bg-slate-50 space-y-2";
+
+  bookCard.innerHTML = `
+    <div class="flex flex-wrap items-center gap-2 md:gap-3">
+      <div class="flex-1 min-w-[120px]">
+        <label class="block text-xs md:text-sm text-gray-600 urdu mb-1">استاذ</label>
+        <select class="w-full border rounded px-2 py-1.5 urdu text-xs md:text-sm book-teacher">
+          <option value="">استاذ منتخب کریں</option>
+        </select>
+      </div>
+      <div class="flex-1 min-w-[120px]">
+        <label class="block text-xs md:text-sm text-gray-600 urdu mb-1">کتاب / پیریڈ</label>
+        <select class="w-full border rounded px-2 py-1.5 urdu text-xs md:text-sm book-name">
+          <option value="">کتاب منتخب کریں</option>
+        </select>
+      </div>
+      <button type="button"
+        class="px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-xs md:text-sm urdu remove-book-btn">
+        × کتاب ہٹائیں
+      </button>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-xs md:text-sm text-right mt-2">
+        <thead class="bg-emerald-100">
+          <tr>
+            <th class="px-2 py-1 urdu">#</th>
+            <th class="px-2 py-1 urdu">سوال</th>
+            <th class="px-2 py-1 urdu">درست جواب دینے والے طلبہ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${[1,2,3,4,5].map(i=>`
+            <tr class="question-row">
+              <td class="px-2 py-1 text-center">${i}</td>
+              <td class="px-2 py-1">
+                <input type="text"
+                       class="w-40 md:w-64 border rounded px-1.5 py-1 urdu text-xs md:text-sm q-text"
+                       placeholder="سوال ${i}">
+              </td>
+              <td class="px-2 py-1">
+                <input type="number" min="0"
+                       class="w-20 border rounded px-1.5 py-1 text-center text-xs md:text-sm q-correct">
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 text-xs md:text-sm urdu">
+      <label class="flex items-center gap-1">
+        <input type="checkbox" class="point-checkbox chk-sabaq-sunana">
+        <span>سبق سننا</span>
+      </label>
+      <label class="flex items-center gap-1">
+        <input type="checkbox" class="point-checkbox chk-sabaq-parhana">
+        <span>سبق پڑھانا</span>
+      </label>
+      <label class="flex items-center gap-1">
+        <input type="checkbox" class="point-checkbox chk-waqt-istemal">
+        <span>وائٹ بورڈ کا استعمال</span>
+      </label>
+      <label class="flex items-center gap-1">
+        <input type="checkbox" class="point-checkbox chk-tiyari">
+        <span>پیشگی تیاری کرنے والے</span>
+      </label>
+      <label class="flex items-center gap-1">
+        <input type="checkbox" class="point-checkbox chk-takrar">
+        <span>تکرار کرانے والے</span>
+      </label>
+      <label class="flex items-center gap-1">
+        <input type="checkbox" class="point-checkbox chk-nizam">
+        <span>درجہ کا نظم و نسق</span>
+      </label>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 items-start">
+      <div>
+        <label class="block text-xs md:text-sm text-gray-600 urdu mb-1">% (اس کتاب کا)</label>
+        <input type="text" readonly
+               class="w-full border rounded px-2 py-1.5 text-center text-sm md:text-base bg-yellow-50 book-percent">
+      </div>
+      <div class="md:col-span-2">
+        <label class="block text-xs md:text-sm text-gray-600 urdu mb-1">کمزوریاں / نوٹس</label>
+        <textarea rows="2"
+                  class="w-full border rounded px-2 py-1.5 text-xs md:text-sm urdu weakness"></textarea>
+      </div>
+    </div>
+  `;
+
+  const teacherSelect = bookCard.querySelector(".book-teacher");
+  const bookSelect    = bookCard.querySelector(".book-name");
+
+  const fillTeachersForClass = () => {
+    const cls = classSelect.value;
+    teacherSelect.innerHTML = '<option value="">استاذ منتخب کریں</option>';
+    bookSelect.innerHTML    = '<option value="">کتاب منتخب کریں</option>';
+    if (!cls || !teachingMap[cls]) return;
+    const teacherSet = new Set(teachingMap[cls].map(r=>r.teacherName));
+    teacherSet.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t;
+      opt.textContent = t;
+      teacherSelect.appendChild(opt);
+    });
+  };
+
+const fillBooksForTeacher = () => {
+    const cls   = classSelect.value;
+    const tName = teacherSelect.value;
+    bookSelect.innerHTML = '<option value="">کتاب منتخب کریں</option>';
+    if (!cls || !teachingMap[cls] || !tName) return;
+    
+    // NAYA CODE: Sirf un kitabon ko filter karna jo is month ke semester ki hain
+    const recs = teachingMap[cls].filter(r => {
+        if (r.teacherName !== tName) return false;
+        
+        // Agar database me kitab ke sath semester likha hi nahi hai, to usko show karo
+        if (!r.dbSem) return true; 
+        
+        // Agar likha hai, to check karo ke usi semester ki ho jo auto-detect hua hai
+        return r.dbSem === currentSem;
+    });
+    
+    const bookSet = new Set(recs.map(r=>r.bookName));
+    bookSet.forEach(b => {
+      const opt = document.createElement("option");
+      opt.value = b;
+      opt.textContent = b;
+      bookSelect.appendChild(opt);
+    });
+  };
+
+  teacherSelect.addEventListener("change", fillBooksForTeacher);
+  classSelect.addEventListener("change", fillTeachersForClass);
+
+  const triggerBookCalc = () => {
+    recalcSingleBookPercent(bookCard, card);
+    recalcClassPercent(card);
+    recalcJamia();
+  };
+
+  const qInputs = bookCard.querySelectorAll(".q-correct");
+  qInputs.forEach(inp => {
+    inp.addEventListener("input", triggerBookCalc);
+  });
+
+  if (presentStudentsInput) {
+    presentStudentsInput.addEventListener("input", () => {
+      const books = card.querySelectorAll(".book-card");
+      books.forEach(b => recalcSingleBookPercent(b, card));
+      recalcClassPercent(card);
+      recalcJamia();
+    });
+  }
+
+  if (totalStudentsInput) {
+    totalStudentsInput.addEventListener("input", () => {
+      const books = card.querySelectorAll(".book-card");
+      books.forEach(b => recalcSingleBookPercent(b, card));
+      recalcClassPercent(card);
+      recalcJamia();
+    });
+  }
+
+  bookCard.querySelector(".remove-book-btn").addEventListener("click", () => {
+    bookCard.remove();
+    recalcClassPercent(card);
+    recalcJamia();
+  });
+
+  // pehle se class select ki value ho to uske hisaab se teachers fill karein
+  fillTeachersForClass();
+  return bookCard;
+};
+
+/*************** Class card create ***************/
+const createClassCard = () => {
+  classCount += 1;
+  const card = document.createElement("div");
+  card.className = "bg-white rounded-xl shadow p-3 md:p-4 space-y-3 class-card";
+  card.dataset.index = classCount;
+
+  card.innerHTML = `
+    <div class="flex flex-wrap items-center gap-2 md:gap-3 border-b pb-2">
+      <div class="flex-1 min-w-[120px]">
+        <label class="block text-xs md:text-sm text-gray-600 urdu mb-1">کلاس</label>
+        <select class="w-full border rounded-lg px-2 py-1.5 text-xs md:text-sm urdu class-select">
+          <option value="">کلاس منتخب کریں</option>
+        </select>
+      </div>
+      <button type="button"
+        class="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs md:text-sm urdu remove-class-btn">
+        × کلاس ہٹا دیں
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3 mt-2">
+      <div>
+        <label class="block text-xs md:text-sm text-gray-600 urdu mb-1">کل طلبہ</label>
+        <input type="number" min="1"
+               class="w-full border rounded-lg px-2 py-1.5 text-center text-sm md:text-base total-students"
+               placeholder="مثال: 30">
+      </div>
+      <div>
+        <label class="block text-xs md:text-sm text-gray-600 urdu mb-1">حاضر طلبہ</label>
+        <input type="number" min="0"
+               class="w-full border rounded-lg px-2 py-1.5 text-center text-sm md:text-base present-students"
+               placeholder="مثال: 25">
+      </div>
+      <div class="flex items-end justify-end">
+        <button type="button"
+                class="add-book-btn px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs md:text-sm urdu">
+          + نئی کتاب شامل کریں
+        </button>
+      </div>
+    </div>
+
+    <div class="book-list space-y-3 mt-2"></div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3 pt-2 border-t mt-1">
+      <div>
+        <label class="block text-xs md:text-sm text-gray-600 urdu mb-1">
+          اس کلاس کا مجموعی فیصد
+        </label>
+        <input type="text" readonly
+               class="w-full border rounded-lg px-2 py-1.5 text-center text-sm md:text-base bg-yellow-50 class-percent">
+      </div>
+      <div>
+        <label class="block text-xs md:text-sm text-gray-600 urdu mb-1">درجہ کیفیت</label>
+        <input type="text" readonly
+               class="w-full border rounded-lg px-2 py-1.5 text-center text-sm md:text-base bg-emerald-50 class-grade urdu">
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs md:text-sm text-gray-600 urdu mb-1">کمزوریاں اور مسائل</label>
+        <textarea rows="2"
+                  class="w-full border rounded-lg px-2 py-1.5 text-xs md:text-sm urdu issues"></textarea>
+        <label class="block text-xs md:text-sm text-gray-600 urdu mb-1 mt-1">حل اور تجاویز</label>
+        <textarea rows="2"
+                  class="w-full border rounded-lg px-2 py-1.5 text-xs md:text-sm urdu suggestions"></textarea>
+      </div>
+    </div>
+  `;
+
+  const classSelect         = card.querySelector(".class-select");
+  const removeBtn           = card.querySelector(".remove-class-btn");
+  const addBookBtn          = card.querySelector(".add-book-btn");
+  const bookList            = card.querySelector(".book-list");
+
+  // ✅ Class body ko collapsible banane ke liye wrapper bana rahe hain
+  const headerRow = card.querySelector(".border-b");  // upar wala row (jisme class dropdown + remove button hai)
+
+  // naya wrapper jisme sari detail jayegi
+  const bodyWrapper = document.createElement("div");
+  bodyWrapper.className = "class-body space-y-3 mt-2";
+
+  // header ke baad jitne elements hain (totals, book-list, class % + remarks)
+  // un sab ko is bodyWrapper ke andar move kar dete hain
+  let sibling = headerRow.nextElementSibling;
+  while (sibling) {
+    const next = sibling.nextElementSibling;
+    bodyWrapper.appendChild(sibling);
+    sibling = next;
+  }
+  card.appendChild(bodyWrapper);
+
+  // ✅ Header me ek toggle button add karein
+  const toggleBtn = document.createElement("button");
+  toggleBtn.type = "button";
+  toggleBtn.className = "toggle-body-btn px-2 py-1 rounded-lg bg-slate-100 text-xs md:text-sm urdu";
+  toggleBtn.textContent = "تفصیل دکھائیں";
+
+  // flex header me remove button se thoda pehle insert kar dete hain
+  headerRow.insertBefore(toggleBtn, removeBtn);
+
+  // default: sab classes band (sirf header dikhai dega)
+  bodyWrapper.classList.add("hidden");
+
+  // ✅ Toggle ka kaam: detail kholna / band karna
+  toggleBtn.addEventListener("click", () => {
+    const hidden = bodyWrapper.classList.toggle("hidden");
+    toggleBtn.textContent = hidden ? "تفصیل دکھائیں" : "تفصیل چھپائیں";
+
+    if (!hidden) {
+      // jab ye class khuli ho to baqi sari classes band kar do
+      const allCards = classesContainer.querySelectorAll(".class-card");
+      allCards.forEach(c => {
+        if (c === card) return;
+        const b = c.querySelector(".class-body");
+        const t = c.querySelector(".toggle-body-btn");
+        if (b && !b.classList.contains("hidden")) {
+          b.classList.add("hidden");
+          if (t) t.textContent = "تفصیل دکھائیں";
+        }
+      });
+    }
+  });
+
+  // fill class dropdown
+  classSelect.innerHTML = '<option value="">کلاس منتخب کریں</option>';
+  classList.forEach(cls => {
+    const opt = document.createElement("option");
+    opt.value = cls;
+    opt.textContent = cls;
+    classSelect.appendChild(opt);
+  });
+
+  // jaiza-form.html ke andar createClassCard function mein is hisse ko sahi karein:
+removeBtn.addEventListener("click", (e) => {
+  e.preventDefault(); // Browser ki default activity rokein
+  const confirmDelete = confirm("kya aap waqai is class ko hatana chahte hain?");
+  if (confirmDelete) {
+    card.remove();
+    recalcJamia(); // Poore jamia ka percentage dobara calculate karein
+    isFormDirty = true; // Taake save ka option yaad rahe
+  }
+});
+
+  const addBook = () => {
+    const bCard = createBookCard(card);
+    bookList.appendChild(bCard);
+  };
+  addBookBtn.addEventListener("click", addBook);
+
+  // default: 1 kitab
+  addBook();
+
+  return card;
+};
+
+const addNewClassCard = () => {
+  const card = createClassCard();
+  classesContainer.appendChild(card);
+  // Manual add karte waqt ek khali book zaroor dikhayen
+  const bookList = card.querySelector(".book-list");
+  if(bookList.children.length === 0) {
+     const bCard = createBookCard(card);
+     bookList.appendChild(bCard);
+  }
+};
+
+/*************** NAYA: pehle se saved Jaiza ko load karke pre-fill kare ***************/
+
+const loadExistingJaizaForms = async (user) => {
+  if (!jamiaId || !monthKey) return;
+
+  const localKey = `jaiza_draft_${jamiaId}_${monthKey}`;
+  const draftStr = localStorage.getItem(localKey);
+  let docs = [];
+  let usingDraft = false;
+
+  // 🌟 MASLA 1 KA HAL: Agar browser memory me kachra (duplicate classes) hain to usay foran delete karo
+  if (draftStr) {
+    try {
+      const parsed = JSON.parse(draftStr);
+      if (parsed.length > 15) {
+        localStorage.removeItem(localKey); // Kachra saaf
+      } else {
+        const ask = confirm("آپ کا پچھلا نامکمل (unsaved) ڈیٹا ملا ہے۔ کیا آپ اسے واپس لانا چاہتے ہیں؟");
+        if (ask) {
+          docs = parsed;
+          usingDraft = true;
+          if (enableEditBtn) enableEditBtn.disabled = true;
+        } else {
+          localStorage.removeItem(localKey);
+        }
+      }
+    } catch(e) {
+      localStorage.removeItem(localKey);
+    }
+  }
+
+  // 🌟 MASLA 2 KA HAL: Asli Jamia ID database se nikal kar preserve karein
+  let realJamiaId = jamiaId;
+  const qRef = query(
+    collection(db,"jaiza_forms"),
+    where("monthKey","==",monthKey),
+    where("createdBy","==",user.uid)
+  );
+  const snap = await getDocs(qRef);
+  const decodedJamia = decodeURIComponent(jamiaId).trim().toLowerCase();
+
+  let uniqueDocsMap = {};
+
+  snap.forEach(d => {
+    const data = d.data();
+    const dbJamiaId = (data.jamiaId || "").trim().toLowerCase();
+    const dbJamiaName = (data.jamiaName || data.name || "").trim().toLowerCase();
+
+    if (dbJamiaId === decodedJamia || dbJamiaName === decodedJamia) {
+      let clsName = data.className || "Unknown";
+      uniqueDocsMap[clsName] = { id: d.id, ...data };
+      
+      // Agar asli lambi wali Master ID mil jaye to usay save kar lein
+      if (data.jamiaId && data.jamiaId.length > 10 && data.jamiaId !== decodedJamia) {
+        realJamiaId = data.jamiaId;
+      }
+    }
+  });
+
+  window.REAL_JAMIA_ID = realJamiaId; // Submit button ko dene ke liye global save kiya
+
+  if (!usingDraft) {
+    Object.values(uniqueDocsMap).forEach(item => docs.push(item));
+
+    if (docs.length === 0) {
+      classesContainer.innerHTML = "";
+      classCount = 0;
+      addNewClassCard();
+      recalcJamia();
+      if (enableEditBtn) enableEditBtn.disabled = true;
+      return;
+    }
+  }
+
+  classesContainer.innerHTML = "";
+  classCount = 0;
+
+  docs.forEach(d => {
+    const card = createClassCard();
+    classesContainer.appendChild(card);
+
+    const classSelect         = card.querySelector(".class-select");
+    const totalStudentsInput  = card.querySelector(".total-students");
+    const presentStudentsInput= card.querySelector(".present-students");
+    const issuesInput         = card.querySelector(".issues");
+    const suggestionsInput    = card.querySelector(".suggestions");
+    const classPercentInput   = card.querySelector(".class-percent");
+    const classGradeInput     = card.querySelector(".class-grade");
+    const bookListDiv         = card.querySelector(".book-list");
+
+    const cName = d.className || "";
+    if (cName) {
+      let exists = false;
+      Array.from(classSelect.options).forEach(o => {
+        if (o.value === cName) exists = true;
+      });
+      if (!exists) {
+        const opt = document.createElement("option");
+        opt.value = cName;
+        opt.textContent = cName;
+        classSelect.appendChild(opt);
+      }
+      classSelect.value = cName;
+      classSelect.dispatchEvent(new Event("change"));
+    }
+
+    totalStudentsInput.value   = d.totalStudents ?? "";
+    presentStudentsInput.value = d.presentStudents ?? "";
+    issuesInput.value          = d.issues || "";
+    suggestionsInput.value     = d.suggestions || "";
+
+    bookListDiv.innerHTML = "";
+
+    const books = Array.isArray(d.books) ? d.books : [];
+    books.forEach(b => {
+      const bookCard = createBookCard(card);
+      bookListDiv.appendChild(bookCard);
+
+      const teacherSelect = bookCard.querySelector(".book-teacher");
+      const bookSelect    = bookCard.querySelector(".book-name");
+      const weaknessTa    = bookCard.querySelector(".weakness");
+      const bookPercInput = bookCard.querySelector(".book-percent");
+
+      if (cName) {
+        const teacherSet = teachingMap[cName] ? new Set(teachingMap[cName].map(r=>r.teacherName)) : new Set();
+        if (b.teacherName && !teacherSet.has(b.teacherName)) {
+          const opt = document.createElement("option");
+          opt.value = b.teacherName;
+          opt.textContent = b.teacherName;
+          teacherSelect.appendChild(opt);
+        }
+      }
+
+      teacherSelect.value = b.teacherName || "";
+      teacherSelect.dispatchEvent(new Event("change"));
+
+      if (b.bookName) {
+        let existsBook = false;
+        Array.from(bookSelect.options).forEach(o => {
+          if (o.value === b.bookName) existsBook = true;
+        });
+        if (!existsBook) {
+          const opt = document.createElement("option");
+          opt.value = b.bookName;
+          opt.textContent = b.bookName;
+          bookSelect.appendChild(opt);
+        }
+        bookSelect.value = b.bookName;
+      }
+
+      weaknessTa.value = b.weakness || "";
+
+      const qRows = bookCard.querySelectorAll(".question-row");
+      const questions = Array.isArray(b.questions) ? b.questions : [];
+      questions.forEach(q => {
+        const idx = (q.index || 1) - 1;
+        if (!qRows[idx]) return;
+        const row = qRows[idx];
+        row.querySelector(".q-text").value    = q.text || "";
+        row.querySelector(".q-correct").value = q.correctStudents ?? "";
+      });
+
+      const checks = b.checks || {};
+      bookCard.querySelector(".chk-sabaq-sunana").checked  = !!checks.sabaqSunana;
+      bookCard.querySelector(".chk-sabaq-parhana").checked = !!checks.sabaqParhana;
+      bookCard.querySelector(".chk-waqt-istemal").checked  = !!checks.waqtIstemal;
+      bookCard.querySelector(".chk-tiyari").checked        = !!checks.tiyari;
+      bookCard.querySelector(".chk-takrar").checked        = !!checks.takrar;
+      bookCard.querySelector(".chk-nizam").checked         = !!checks.nizam;
+
+      if (typeof b.percentage === "number") {
+        bookPercInput.value = b.percentage.toFixed(1) + "%";
+      } else {
+        recalcSingleBookPercent(bookCard, card);
+      }
+    });
+
+    if (typeof d.classPercentage === "number") {
+      classPercentInput.value = d.classPercentage.toFixed(1) + "%";
+      classGradeInput.value   = d.grade || getGrade(d.classPercentage);
+    } else {
+      recalcClassPercent(card);
+    }
+  });
+
+  recalcJamia();
+
+  if (docs.length && enableEditBtn) {
+    toggleEditMode(false);
+    enableEditBtn.disabled = false;
+  }
+};
+
+/*************** Auth & initial load ***************/
+const ADMIN_UID = "xB1E48oIdvN7jruPCIp7tzlH9lA2";
+window.exitAdminMode = () => {
+    sessionStorage.removeItem('impersonateUserId');
+    window.location.href = 'admin.html';
+};
+function showImpersonationBanner() {
+    if (document.getElementById('admin-banner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'admin-banner';
+    // Is file me urdu class / RTL hai isliye thoda adjust kiya hai
+    banner.className = "fixed top-0 left-0 w-full bg-yellow-500 text-black text-center py-2 z-[100] font-bold shadow-md text-sm flex justify-center items-center gap-4 urdu";
+    banner.innerHTML = `<span><i class="fas fa-user-secret ml-2"></i> ایڈمن موڈ: آپ اس وقت ذمہ دار کا جائزہ فارم دیکھ رہے ہیں۔</span><button onclick="exitAdminMode()" class="bg-gray-900 text-white px-3 py-1 rounded-lg text-xs mr-4 font-sans">Wapas Admin Panel</button>`;
+    document.body.prepend(banner);
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    showError("لاگ اِن ضروری ہے، پہلے ڈیش بورڈ سے لاگ اِن کریں۔");
+    return;
+  }
+  
+  // 🟢 NAYA LOGIC: Admin Check
+  let activeUserId = user.uid;
+  const impersonateId = sessionStorage.getItem('impersonateUserId');
+  if (user.uid === ADMIN_UID && impersonateId) {
+      activeUserId = impersonateId;
+      showImpersonationBanner();
+  }
+  
+  // System ko trick kar diya 
+  currentUser = { uid: activeUserId, email: user.email };
+
+ showLoader(true);
+  try {
+    // 🌟 NAYA LOGIC: Master List se Urdu Naam nikal kar header mein dikhayen
+    try {
+      const decodedJamia = decodeURIComponent(jamiaId).trim();
+      let finalDisplayName = decodedJamia;
+      
+      const masterSnap = await getDocs(collection(db, "jamiaat_master"));
+      masterSnap.forEach(d => {
+          const data = d.data();
+          if (d.id === decodedJamia || (data.name || "").trim().toLowerCase() === decodedJamia.toLowerCase()) {
+              if (data.urduName) {
+                  finalDisplayName = `${data.urduName} (${data.name})`; // Urdu aur English dono dikhayega
+              } else if (data.name) {
+                  finalDisplayName = data.name;
+              }
+          }
+      });
+      const headerJamiaEl = document.getElementById("header-jamia-name");
+      if (headerJamiaEl) headerJamiaEl.innerHTML = `جامعہ: ${finalDisplayName}`;
+    } catch(e) { console.log("Urdu name fetch error:", e); }
+
+    // Ab ye form "currentUser" (yaani trick kiye hue user) ka data hi layega aur save karega
+    await loadTeachingStructure(currentUser);
+    await loadExistingJaizaForms(currentUser);
+  } catch(err) {
+    console.error(err);
+    // fallback: at least ek blank class
+    classesContainer.innerHTML = "";
+    classCount = 0;
+    addNewClassCard();
+  } finally {
+    showLoader(false);
+  }
+});
+
+addClassBtn.addEventListener("click", () => addNewClassCard());
+
+/*************** Update button → enable editing ***************/
+if (enableEditBtn) {
+  enableEditBtn.addEventListener("click", () => {
+    toggleEditMode(true);
+    // ek baar edit on karne ke baad is button ko disable kar dete hain
+    enableEditBtn.disabled = true;
+  });
+}
+
+/*************** Submit → save in Firestore ***************/
+formEl.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  clearError();
+  clearSuccess();
+
+  if (!currentUser) {
+    showError("لاگ اِن نہیں ملا، براہ کرم دوبارہ ڈیش بورڈ سے آئیں۔");
+    return;
+  }
+  if (!jamiaId || !monthKey) {
+    showError("جامعہ یا مہینہ URL میں موجود نہیں، لنک چیک کریں۔");
+    return;
+  }
+
+  const cards = Array.from(classesContainer.querySelectorAll(".class-card"));
+  if (!cards.length) {
+    showError("کم از کم ایک کلاس شامل کریں۔");
+    return;
+  }
+
+  const payloads = [];
+  const finalJamiaId = window.REAL_JAMIA_ID || jamiaId; // 🌟 Asli lambi ID yahan istemal hogi
+  const decodedJamia = decodeURIComponent(jamiaId);
+
+  cards.forEach(card => {
+    const className       = card.querySelector(".class-select").value.trim();
+    const totalStudents   = Number(card.querySelector(".total-students")?.value || 0);
+    const presentStudents = Number(card.querySelector(".present-students")?.value || 0);
+
+    const classPercentStr = card.querySelector(".class-percent")?.value || "";
+    let classPercentage = null;
+    if (classPercentStr) {
+      const v = Number(classPercentStr.replace("%","").trim());
+      if (!isNaN(v)) classPercentage = v;
+    }
+
+    const issues      = card.querySelector(".issues").value.trim();
+    const suggestions = card.querySelector(".suggestions").value.trim();
+
+    const books = [];
+    const bookCards = card.querySelectorAll(".book-card");
+    bookCards.forEach(bCard => {
+      const teacherName = bCard.querySelector(".book-teacher").value.trim();
+      const bookName    = bCard.querySelector(".book-name").value.trim();
+      const weakness    = bCard.querySelector(".weakness").value.trim();
+      const percStr     = bCard.querySelector(".book-percent").value;
+
+      const qRows = bCard.querySelectorAll(".question-row");
+      const questions = [];
+      qRows.forEach((row, idx) => {
+        const text = row.querySelector(".q-text").value.trim();
+        const corr = Number(row.querySelector(".q-correct").value || 0);
+        if (!text && !corr) return;
+        questions.push({
+          index: idx+1,
+          text,
+          correctStudents: corr
+        });
+      });
+
+      const checks = {
+        sabaqSunana:  bCard.querySelector(".chk-sabaq-sunana")?.checked || false,
+        sabaqParhana: bCard.querySelector(".chk-sabaq-parhana")?.checked || false,
+        waqtIstemal:  bCard.querySelector(".chk-waqt-istemal")?.checked || false,
+        tiyari:       bCard.querySelector(".chk-tiyari")?.checked || false,
+        takrar:       bCard.querySelector(".chk-takrar")?.checked || false,
+        nizam:        bCard.querySelector(".chk-nizam")?.checked || false,
+      };
+
+      let percentage = null;
+      if (percStr) {
+        const v = Number(percStr.replace("%","").trim());
+        if (!isNaN(v)) percentage = v;
+      }
+
+      const allEmptyBook =
+        !teacherName && !bookName && !questions.length &&
+        !weakness && !percentage &&
+        !checks.sabaqSunana && !checks.sabaqParhana && !checks.waqtIstemal &&
+        !checks.tiyari && !checks.takrar && !checks.nizam;
+
+      if (allEmptyBook) return;
+
+      books.push({
+        teacherName,
+        bookName,
+        questions,
+        percentage,
+        weakness,
+        checks
+      });
+    });
+
+    const allEmptyClass =
+      !className && !totalStudents && !presentStudents && !books.length && !issues && !suggestions;
+
+    if (allEmptyClass) return;
+
+    payloads.push({
+      jamiaId: finalJamiaId, // 🌟 Asli ID store ho rahi hai
+      jamiaName: decodedJamia, // 🌟 Naam alag se store ho raha hai
+      monthKey,
+      className,
+      totalStudents,
+      presentStudents,
+      classPercentage,
+      grade: classPercentage != null ? getGrade(classPercentage) : "-",
+      books,
+      issues,
+      suggestions,
+      totalClasses: Number(totalClassesEl?.textContent || 0),
+      totalBooks: Number(totalBooksEl?.textContent || 0),
+      createdBy: currentUser.uid,
+      createdAt: serverTimestamp()
+    });
+  });
+
+  if (!payloads.length) {
+    showError("کم از کم ایک کلاس میں کچھ ڈیٹا ضرور بھریں۔");
+    return;
+  }
+
+  showLoader(true);
+  try {
+    // 🌟 SAARE KACHRE WALE PURANE FORMS DELETE KAREIN
+    const qRef = query(
+      collection(db,"jaiza_forms"),
+      where("monthKey","==",monthKey),
+      where("createdBy","==",currentUser.uid)
+    );
+    const oldSnap = await getDocs(qRef);
+    const searchJamia = decodedJamia.trim().toLowerCase();
+    const oldToReplace = [];
+    oldSnap.forEach(d => {
+        const data = d.data();
+        const dbJamiaId = (data.jamiaId || "").trim().toLowerCase();
+        const dbJamiaName = (data.jamiaName || data.name || "").trim().toLowerCase();
+        if (dbJamiaId === searchJamia || dbJamiaName === searchJamia || dbJamiaId === finalJamiaId.toLowerCase()) {
+            oldToReplace.push(d);
+        }
+    });
+
+    // ✅ ATOMIC: purana data Recycle Bin me jata hai aur naya ek hi saath likha jata hai.
+    // Beech me net/error aaye to PURANA DATA SALAMAT rehta hai (pehle delete ho kar gum ho jata tha).
+    await replaceDocs(
+      db,
+      oldToReplace,
+      payloads.map(p => ({ collection: "jaiza_forms", data: p })),
+      { label: "Jaiza: " + decodedJamia + " (" + monthKey + ")" }
+    );
+
+    showSuccess("تعلیمی جائزہ کامیابی کے ساتھ محفوظ ہو گیا۔");
+    isFormDirty = false; 
+    localStorage.removeItem(`jaiza_draft_${jamiaId}_${monthKey}`);
+  } catch(err) {
+    console.error(err);
+    showError("ڈیٹا محفوظ کرتے وقت مسئلہ آیا، بعد میں دوبارہ کوشش کریں۔");
+  } finally {
+    showLoader(false);
+  }
+});
+  
+  /* === Dashboard Back Confirmation === */
+document.addEventListener("DOMContentLoaded", () => {
+  const backBtn = document.getElementById("dashboard-back-btn");
+
+  if (backBtn) {
+    backBtn.addEventListener("click", function (event) {
+      // Agar form dirty hai (changes huye hain) to confirm karein
+      if (isFormDirty) {
+        event.preventDefault(); // Stop navigation
+        const ask = confirm("کیا آپ واقعی واپس جانا چاہتے ہیں؟\nجو ڈیٹا محفوظ نہیں کیا گیا، وہ ضائع ہو جائے گا۔");
+        if (ask) {
+          isFormDirty = false; // User ne confirm kar diya, ab rokne ki zaroorat nahi
+          window.location.href = backBtn.href;
+        }
+      }
+      // Agar form dirty nahi hai, to direct jane dega (kuch karne ki zaroorat nahi)
+    });
+  }
+});
+  // Agar user form mein kuch bhi change kare (likhe ya select kare)
+// --- NAYA: LocalStorage Auto-Save Logic ---
+const saveDraftToLocal = () => {
+  if (!jamiaId || !monthKey) return;
+  const cards = Array.from(classesContainer.querySelectorAll(".class-card"));
+  const payloads = [];
+
+  cards.forEach(card => {
+    const className = card.querySelector(".class-select")?.value.trim() || "";
+    const totalStudents = Number(card.querySelector(".total-students")?.value || 0);
+    const presentStudents = Number(card.querySelector(".present-students")?.value || 0);
+    const classPercentStr = card.querySelector(".class-percent")?.value || "";
+    let classPercentage = null;
+    if (classPercentStr) {
+      const v = Number(classPercentStr.replace("%","").trim());
+      if (!isNaN(v)) classPercentage = v;
+    }
+    const issues = card.querySelector(".issues")?.value.trim() || "";
+    const suggestions = card.querySelector(".suggestions")?.value.trim() || "";
+
+    const books = [];
+    card.querySelectorAll(".book-card").forEach(bCard => {
+      const teacherName = bCard.querySelector(".book-teacher")?.value.trim() || "";
+      const bookName = bCard.querySelector(".book-name")?.value.trim() || "";
+      const weakness = bCard.querySelector(".weakness")?.value.trim() || "";
+      const percStr = bCard.querySelector(".book-percent")?.value || "";
+      let percentage = null;
+      if (percStr) {
+        const v = Number(percStr.replace("%","").trim());
+        if (!isNaN(v)) percentage = v;
+      }
+
+      const questions = [];
+      bCard.querySelectorAll(".question-row").forEach((row, idx) => {
+        const text = row.querySelector(".q-text")?.value.trim() || "";
+        const corr = row.querySelector(".q-correct")?.value || "";
+        if (text || corr) {
+          questions.push({ index: idx + 1, text, correctStudents: corr !== "" ? Number(corr) : "" });
+        }
+      });
+
+      const checks = {
+        sabaqSunana: bCard.querySelector(".chk-sabaq-sunana")?.checked || false,
+        sabaqParhana: bCard.querySelector(".chk-sabaq-parhana")?.checked || false,
+        waqtIstemal: bCard.querySelector(".chk-waqt-istemal")?.checked || false,
+        tiyari: bCard.querySelector(".chk-tiyari")?.checked || false,
+        takrar: bCard.querySelector(".chk-takrar")?.checked || false,
+        nizam: bCard.querySelector(".chk-nizam")?.checked || false,
+      };
+
+      books.push({ teacherName, bookName, weakness, percentage, questions, checks });
+    });
+
+    payloads.push({ className, totalStudents, presentStudents, classPercentage, issues, suggestions, books });
+  });
+
+  // Data ko browser ki memory mein save kar diya
+  localStorage.setItem(`jaiza_draft_${jamiaId}_${monthKey}`, JSON.stringify(payloads));
+};
+
+// Jab bhi form mein kuch likha jaye ya badla jaye, toh background mein save ho jayega
+formEl.addEventListener("input", () => {
+  isFormDirty = true;
+  saveDraftToLocal();
+});
+formEl.addEventListener("change", () => {
+  isFormDirty = true;
+  saveDraftToLocal();
+});
+// Browser close/refresh/back button par rokne ke liye
+window.addEventListener("beforeunload", function (e) {
+  if (isFormDirty) {
+    e.preventDefault();
+    // Modern browsers custom message show nahi karte, wo generic warning dete hain.
+    // Lekin ye line zaroori hai popup trigger karne ke liye.
+    e.returnValue = ""; 
+  }
+});
+  // --- Yahan se Naya Code Copy karein ---
+
+// Helper Function: Dashboard Update karne ke liye
+const updateDashboardReport = async (finalPercent, finalGrade) => {
+  if (!currentUser || !jamiaId || !monthKey) return;
+
+  // 1. Report ID generate karein (Dashboard logic ke mutabiq)
+  const [yStr, mStr] = monthKey.split("-");
+  const yearNum = parseInt(yStr);
+  const monthNum = parseInt(mStr) - 1; // 0-11
+  const academicYear = (monthNum >= 3) ? `${yearNum}-${yearNum + 1}` : `${yearNum - 1}-${yearNum}`;
+  
+  // ID format wahi hona chahiye jo index.html me hai
+  const reportId = `${currentUser.uid}_${academicYear}_${yearNum}_${monthNum}`;
+  const reportRef = doc(db, "monthly_reports", reportId);
+
+  try {
+    const reportSnap = await getDoc(reportRef);
+    if (reportSnap.exists()) {
+      const reportData = reportSnap.data();
+      let jaizaData = reportData.jaizaReport?.data || [];
+      const jamiaNameDecoded = decodeURIComponent(jamiaId);
+
+      // Check karein agar ye Jamia pehle se list me hai
+      const index = jaizaData.findIndex(j => j.name === jamiaNameDecoded);
+
+      const newEntry = {
+        name: jamiaNameDecoded,
+        date: new Date().toISOString().split('T')[0], // Aaj ki date
+        type: "Jaiza",
+        percentage: finalPercent, // Updated Percentage (e.g. 69.30)
+      };
+
+      if (index !== -1) {
+        // Agar pehle se hai to update karein (Merge logic)
+        jaizaData[index] = { ...jaizaData[index], ...newEntry };
+      } else {
+        // Agar nahi hai to naya add karein
+        jaizaData.push(newEntry);
+      }
+
+      // Firestore Update
+      await updateDoc(reportRef, {
+        "jaizaReport.data": jaizaData,
+        "jaizaReport.status": "Done"
+      });
+      console.log("Dashboard successfully updated with new %:", finalPercent);
+    }
+  } catch (err) {
+    console.error("Dashboard update failed:", err);
+  }
+};
+
+// ─── PDF BANAO LOGIC (html2pdf.js — Reliable & Beautiful) ───
+const printPdfBtn = document.getElementById("print-pdf-btn");
+if (printPdfBtn) {
+  printPdfBtn.addEventListener("click", async () => {
+ 
+    // html2pdf library check
+    if (typeof html2pdf === 'undefined') {
+      alert('PDF library load nahi hui. Page refresh kar ke dobara koshish karein.');
+      return;
+    }
+ 
+    // Button disable (duplicate click rokne ke liye)
+    printPdfBtn.disabled = true;
+    const origHTML = printPdfBtn.innerHTML;
+    printPdfBtn.innerHTML = '<span class="urdu text-sm">⏳ PDF بن رہی ہے...</span>';
+ 
+    // Step 1: Tamam class bodies force-show karo
+    const allBodies = document.querySelectorAll('.class-body');
+    allBodies.forEach(body => {
+      body.classList.remove('hidden');
+      body.style.setProperty('display', 'block', 'important');
+      body.style.setProperty('visibility', 'visible', 'important');
+      body.style.setProperty('opacity', '1', 'important');
+    });
+ 
+    // Step 2: UI buttons temporarily hide karo
+    const uiElements = [
+      ...['#dashboard-back-btn','#info-box','#error-box','#success-box',
+          '#loader','#enable-edit-btn','#add-class-btn']
+        .map(s => document.querySelector(s)),
+      ...document.querySelectorAll('.add-book-btn,.remove-book-btn,.remove-class-btn,.toggle-body-btn'),
+      printPdfBtn,
+      document.querySelector('button[type="submit"]'),
+    ].filter(Boolean);
+    uiElements.forEach(el => el.style.setProperty('display', 'none', 'important'));
+
+    const allTextareas = document.querySelectorAll('textarea');
+    allTextareas.forEach(ta => {
+        ta.style.height = 'auto'; // Pehle height auto karein
+        ta.style.height = (ta.scrollHeight + 5) + 'px'; // Content ke mutabiq height set karein
+    });
+ 
+    // Step 3: pdf-mode on
+    document.body.classList.add('pdf-mode');
+ 
+    // Step 4: Fonts aur render ka intezaar
+    try { await document.fonts.ready; } catch(e) {}
+    await new Promise(r => setTimeout(r, 900));
+ 
+    // Step 5: Filename
+    let safeJamia = 'jaiza';
+    try { safeJamia = decodeURIComponent(jamiaId || 'jaiza'); } catch(e) {}
+    const filename = `تعلیمی_جائزہ_${safeJamia}_${monthKey || ''}.pdf`;
+ 
+    
+    // Step 6: html2pdf options
+    const opt = {
+      margin: [10, 10, 13, 10],
+      filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        letterRendering: true,
+        scrollY: 0,
+        windowWidth: Math.max(document.documentElement.scrollWidth, 1050),
+        logging: false,
+        backgroundColor: '#ffffff',
+      },
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait',
+        compress: true,
+      },
+      pagebreak: {
+        mode: ['css', 'legacy'] /* 'css' yahan likhna zaroori hai taake har class naye page par chali jaye */
+      },
+    };
+ 
+    // Step 7: PDF generate aur download
+    try {
+      await html2pdf().set(opt).from(document.querySelector('.max-w-6xl')).save();
+    } catch (err) {
+      console.error('PDF error:', err);
+      alert('PDF بنانے میں مسئلہ آیا۔ براہ کرم دوبارہ کوشش کریں۔');
+    } finally {
+      // Step 8: Sab restore karo
+      document.body.classList.remove('pdf-mode');
+      allBodies.forEach(body => {
+        body.style.removeProperty('display');
+        body.style.removeProperty('visibility');
+        body.style.removeProperty('opacity');
+      });
+      uiElements.forEach(el => el.style.removeProperty('display'));
+      printPdfBtn.disabled = false;
+      printPdfBtn.innerHTML = origHTML;
+    }
+  });
+}
+// ─── PDF BANAO LOGIC END ───
+  
+</script>
+
+</body>
+</html>

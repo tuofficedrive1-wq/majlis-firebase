@@ -1,0 +1,985 @@
+// Filename: result-analysis.js
+import {
+    collection, query, where, getDocs, orderBy, deleteDoc, doc
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+
+// 1. Grading Logic (Split: Jamia/Class vs Teacher)
+// Humne naam wapas getJamiaKefiyat rakha hai taake ReferenceError khatam ho jaye
+const getJamiaKefiyat = (p, level = 'teacher') => {
+    let val = parseFloat(String(p).replace('%', ''));
+    if (isNaN(val)) return "-";
+    
+    // Jamia aur Class Wise ke liye 85% wala logic
+    if (level === 'jamia' || level === 'class') {
+        if (val >= 85) return "ممتاز مع شرف";
+        if (val >= 76) return "ممتاز";
+        if (val >= 61) return "بہتر";
+        if (val >= 40) return "مناسب";
+        return "کمزور";
+    } 
+    // Asatiza Wise ke liye strict logic
+    else {
+        if (val >= 90) return "ممتاز";
+        if (val >= 70) return "بہتر";
+        if (val >= 60) return "مناسب";
+        if (val >= 51) return "کمزور";
+        return "تشویش ناک";
+    }
+};
+
+const getKefiyatColor = (p, level = 'teacher') => {
+    let val = parseFloat(String(p).replace('%', ''));
+    if (level === 'jamia' || level === 'class') {
+        if (val >= 85) return "#059669"; // Green
+        if (val >= 76) return "#2563eb"; // Blue
+        if (val >= 61) return "#d97706"; // Orange
+        if (val >= 40) return "#7c3aed"; // Purple
+        return "#dc2626";                // Red
+    } else {
+        if (val >= 90) return "#059669";
+        if (val >= 70) return "#2563eb";
+        if (val >= 60) return "#d97706";
+        if (val >= 51) return "#7c3aed";
+        return "#dc2626";
+    }
+};
+
+export async function initResultAnalysis(db, user, containerId, userProfileData) {
+    if (!db || !user) return;
+    window.db = db; // Global reference confirm karein
+
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // --- 1. FULL RECORD DELETE ---
+    window.deleteEntry = async (docId, collectionName) => {
+        if (!confirm("Kya aap waqai is poore record ko delete karna chahte hain?")) return;
+        
+        try {
+            // Firestore se direct import aur execution
+            const { deleteDoc, doc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+            const docRef = doc(window.db, collectionName, docId);
+            
+            await deleteDoc(docRef);
+            alert("Record delete ho gaya.");
+
+            // Force Refresh: Table ko saaf karke dobara fetch karein
+            if (window.fetchResultData) {
+                document.getElementById('ra-table-body').innerHTML = ''; // Pehle list clear karein
+                await window.fetchResultData(); 
+            }
+        } catch (err) {
+            alert("Galti: " + err.message);
+        }
+    };
+
+    // --- 2. SINGLE SUBJECT DELETE (Row Delete) ---
+    window.deleteSubjectRow = async (docId, teacherIdx, periodIdx) => {
+        if (!confirm("Kya aap sirf is subject/row ko delete karna chahte hain?")) return;
+
+        try {
+            const { updateDoc, doc, getDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+            const docRef = doc(window.db, "asatiza_wise_results", docId);
+            const snap = await getDoc(docRef);
+
+            if (snap.exists()) {
+                let currentData = [...snap.data().data]; // Create a copy
+                
+                // Specific subject nikalna
+                if (currentData[teacherIdx] && currentData[teacherIdx].periods) {
+                    currentData[teacherIdx].periods.splice(periodIdx, 1);
+                    
+                    // Agar periods khatam ho gaye to teacher ko hi hata dein
+                    if (currentData[teacherIdx].periods.length === 0) {
+                        currentData.splice(teacherIdx, 1);
+                    }
+                    
+                    // Firestore Update
+                    await updateDoc(docRef, { data: currentData });
+                    alert("Subject delete ho gaya.");
+
+                    // UI Update
+                    if (window.fetchResultData) {
+                        await window.fetchResultData();
+                    }
+                }
+            }
+        } catch (err) {
+            alert("Error: " + err.message);
+        }
+    };
+
+    // --- Container HTML aur fetchResultData logic yahan se shuru hoga ---
+
+    container.innerHTML = `
+      <div class="max-w-7xl mx-auto bg-white p-2 md:p-5 rounded-xl shadow-lg border border-gray-200 space-y-5 w-full">
+        <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 no-print">
+            <h4 class="text-sm font-bold text-indigo-700 uppercase mb-3 border-b border-indigo-200 pb-1">Result Analysis Filters</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Exam Type</label>
+                    <select id="ra-exam-type" class="w-full p-2 border rounded text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="ششماہی امتحان">ششماہی امتحان</option>
+                        <option value="سالانہ امتحان">سالانہ امتحان</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Taleemi Saal</label>
+                    <select id="ra-exam-year" class="w-full p-2 border rounded text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                                           </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Select Jamia</label>
+                    <select id="ra-jamia-filter" class="w-full p-2 border rounded text-sm urdu-font outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Tamam Jamiaat (All)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Analysis Level</label>
+                    <select id="ra-layout-level" class="w-full p-2 border rounded text-sm font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="jamia">Jamia Wise Summary</option>
+                        <option value="class">Class Wise Summary</option>
+                        <option value="teacher">Asatiza Wise Summary</option>
+                        <option value="wazahat">Kamzor Result (Wazahat)</option>
+                    </select>
+                </div>
+            </div>
+            <button id="ra-show-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-lg shadow transition transform active:scale-95">
+                <i class="fas fa-chart-bar mr-2"></i> Result Analysis Show Karein
+            </button>
+            <button id="ra-top3-poster-btn" class="bg-gradient-to-r from-teal-500 to-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md">
+        <i class="fas fa-trophy mr-1"></i> Download Top 3 Poster
+    </button>
+                    </div>
+
+
+        <div id="ra-loader" class="hidden text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
+            <p class="mt-2 text-indigo-600 font-semibold">Data analyze ho raha hai...</p>
+        </div>
+
+        <div id="ra-report-area" class="hidden mt-6 bg-white rounded-lg border border-gray-200 w-full overflow-hidden shadow-sm">
+            <div class="bg-indigo-700 text-white p-5 flex justify-between items-center border-b-4 border-indigo-900">
+                <div class="w-24"></div> 
+                <div class="text-center flex-1">
+                    <h2 id="ra-report-title" class="text-4xl font-bold urdu-font">نتیجہ امتحان</h2>
+                    <p id="ra-report-subtitle" class="text-lg opacity-90 mt-2 font-sans text-center"></p>
+                </div>
+                <div class="flex gap-2 no-print" data-html2canvas-ignore="true">
+                    <button id="ra-download-excel" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded shadow font-bold text-sm">
+                        <i class="fas fa-file-excel mr-1"></i> Excel
+                    </button>
+                    <button id="ra-download-image" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded shadow font-bold text-sm">
+                        <i class="fas fa-image mr-1"></i> Image
+                    </button>
+                </div>
+            </div>
+            <div class="w-full overflow-x-auto">
+                <table id="ra-data-table" class="w-full min-w-full text-center text-[15px] border-collapse" dir="rtl">
+                    <thead id="ra-table-head" class="bg-slate-100 text-slate-800 font-bold border-b-2 border-slate-300 text-base"></thead>
+                    <tbody id="ra-table-body" class="divide-y divide-gray-200 urdu-font bg-white"></tbody>
+                    <tfoot id="ra-table-foot" class="bg-gray-800 text-white font-bold urdu-font"></tfoot>
+                </table>
+            </div>
+        </div>
+      </div>
+    `;
+// --- NAYA CODE: Exam Year Auto-Populate for Analysis ---
+    const raExamYearSelect = document.getElementById('ra-exam-year');
+    if (raExamYearSelect) {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth(); 
+        const startYear = (currentMonth >= 3) ? currentYear : currentYear - 1;
+        const endYear = startYear + 1;
+        const currentAcademicYear = `${startYear}-${endYear.toString().slice(-2)}`; 
+
+        let availableYears = new Set();
+        if (userProfileData && userProfileData.academicYears) {
+            Object.keys(userProfileData.academicYears).forEach(year => {
+                const parts = year.split('-');
+                if (parts.length === 2 && parts[1].length === 4) {
+                    availableYears.add(`${parts[0]}-${parts[1].slice(-2)}`);
+                } else {
+                    availableYears.add(year);
+                }
+            });
+        }
+        
+        availableYears.add(currentAcademicYear);
+        const sortedYears = Array.from(availableYears).sort().reverse();
+
+        raExamYearSelect.innerHTML = '';
+        sortedYears.forEach(yearVal => {
+            const option = document.createElement('option');
+            option.value = yearVal;
+            option.textContent = yearVal;
+            if (yearVal === currentAcademicYear) option.selected = true;
+            raExamYearSelect.appendChild(option);
+        });
+    }
+    
+    const jamiaSelect = document.getElementById('ra-jamia-filter');
+    const userJamiaat = userProfileData.jamiaatList || [];
+    let userJamiaatNames = []; // Nayi list jisme sirf naam honge
+    
+    userJamiaat.forEach(j => { 
+        // Agar j object hai to uska naam nikalo, warna string ko waise hi rakho
+        const jName = typeof j === 'object' ? (j.name || j.jamiaName) : j;
+        if(jName) {
+            userJamiaatNames.push(jName);
+            const opt = document.createElement('option');
+            opt.value = jName; 
+            opt.textContent = jName; 
+            jamiaSelect.appendChild(opt);
+        }
+    });
+
+            window.fetchResultData = async () => {
+        const examType = document.getElementById('ra-exam-type').value;
+        const examYear = document.getElementById('ra-exam-year').value;
+        const jamiaFilter = document.getElementById('ra-jamia-filter').value;
+        const layoutLevel = document.getElementById('ra-layout-level').value;
+        
+        const loader = document.getElementById('ra-loader');
+        const reportArea = document.getElementById('ra-report-area');
+        const thead = document.getElementById('ra-table-head');
+        const tbody = document.getElementById('ra-table-body');
+        const tfoot = document.getElementById('ra-table-foot');
+        const subtitle = document.getElementById('ra-report-subtitle');
+
+        loader.classList.remove('hidden');
+        reportArea.classList.add('hidden');
+        tbody.innerHTML = '';
+        tfoot.innerHTML = '';
+
+        try {
+            const collectionName = (layoutLevel === 'class' || layoutLevel === 'jamia') ? "class_wise_results" : "asatiza_wise_results"; 
+            const colRef = collection(db, collectionName); 
+            
+            let q = query(colRef, 
+                where("examType", "==", examType), 
+                where("examYear", "==", examYear),
+                orderBy("timestamp", "desc")
+            );
+
+            const snapshot = await getDocs(q);
+            let latestDataMap = new Map();
+
+                snapshot.forEach(docSnap => {
+    const d = docSnap.data();
+    d.docId = docSnap.id;
+
+    if (!userJamiaatNames.includes(d.jamia)) return;
+    if (jamiaFilter && d.jamia !== jamiaFilter) return;
+    if (d.uid && d.uid !== user.uid) return;
+
+    let uniqueKey;
+    if (layoutLevel === 'teacher' || layoutLevel === 'wazahat') {
+        // asatiza_wise_results: khali docs skip, har jamia ka sabse naya bhara hua doc
+        if (!Array.isArray(d.data) || d.data.length === 0) return;
+        uniqueKey = d.jamia;
+    } else {
+        uniqueKey = `${d.jamia}_${d.darjah}`;
+    }
+
+    if (!latestDataMap.has(uniqueKey)) latestDataMap.set(uniqueKey, d);
+});
+
+            let rowsHtml = "";
+            let totals = { kul: 0, hazir: 0, passed: 0, zimni: 0, nakam: 0 };
+
+            if (layoutLevel === 'jamia') {
+                thead.innerHTML = `
+                    <tr class="bg-gray-200">
+                        <th class="border p-3">#</th><th class="border p-3">جامعہ کا نام</th>
+                        <th class="border p-3">کل طلبہ</th><th class="border p-3 text-blue-700">حاضر</th>
+                        <th class="border p-3 text-green-700">کامیاب</th><th class="border p-3 text-purple-700">ضمنی</th>
+                        <th class="border p-3 text-red-600">ناکام</th><th class="border p-3">فیصد</th><th class="border p-3">کیفیت</th>
+                    </tr>`;
+
+                let jamiaStats = {};
+                latestDataMap.forEach((d) => {
+                    const total = (parseInt(d.mumtazSharf)||0) + (parseInt(d.mumtaz)||0) + (parseInt(d.jayyidJidda)||0) + (parseInt(d.jayyid)||0) + (parseInt(d.maqbool)||0) + (parseInt(d.majazZimni)||0) + (parseInt(d.nakam)||0) + (parseInt(d.ghaib)||0);
+                    const passed = (parseInt(d.mumtazSharf)||0) + (parseInt(d.mumtaz)||0) + (parseInt(d.jayyidJidda)||0) + (parseInt(d.jayyid)||0) + (parseInt(d.maqbool)||0);
+                    const nakam = parseInt(d.nakam) || 0;
+                    const zimni = parseInt(d.majazZimni) || 0;
+                    const ghaib = parseInt(d.ghaib) || 0;
+
+                    if (!jamiaStats[d.jamia]) {
+                        jamiaStats[d.jamia] = { total: 0, passed: 0, nakam: 0, ghaib: 0, majazZimni: 0 };
+                    }
+                    jamiaStats[d.jamia].total += total;
+                    jamiaStats[d.jamia].passed += passed;
+                    jamiaStats[d.jamia].nakam += nakam;
+                    jamiaStats[d.jamia].ghaib += ghaib;
+                    jamiaStats[d.jamia].majazZimni += zimni;
+                });
+
+                let idx = 1;
+                for (let jName in jamiaStats) {
+                    const s = jamiaStats[jName];
+                    const hazir = s.total - s.ghaib;
+                    const percNum = hazir > 0 ? (s.passed / hazir) * 100 : 0;
+                    
+                    totals.kul += s.total; totals.hazir += hazir; totals.passed += s.passed; totals.zimni += s.majazZimni; totals.nakam += s.nakam;
+
+                    rowsHtml += `
+                        <tr class="hover:bg-gray-50 border-b">
+                            <td class="border p-3">${idx++}</td>
+                            <td class="border p-3 font-bold text-right">${jName}</td>
+                            <td class="border p-3 font-bold">${s.total}</td>
+                            <td class="border p-3 text-blue-700">${hazir}</td>
+                            <td class="border p-3 text-green-700">${s.passed}</td>
+                            <td class="border p-3 text-purple-700">${s.majazZimni}</td>
+                            <td class="border p-3 text-red-600">${s.nakam}</td>
+                            <td class="border p-3 bg-teal-50 font-black text-teal-800">${percNum.toFixed(2)}%</td>
+                            <td class="border p-3 font-bold" style="color:${getKefiyatColor(percNum, 'jamia')}">
+                                ${getJamiaKefiyat(percNum, 'jamia')} 
+                            </td>
+                        </tr>`;
+                }
+                const overallPerc = totals.hazir > 0 ? (totals.passed / totals.hazir) * 100 : 0;
+                tfoot.innerHTML = `<tr><td colspan="2" class="p-3 text-right">TOTAL SUMMARY</td><td>${totals.kul}</td><td>${totals.hazir}</td><td>${totals.passed}</td><td>${totals.zimni}</td><td>${totals.nakam}</td><td>${overallPerc.toFixed(2)}%</td><td>${getJamiaKefiyat(overallPerc)}</td></tr>`;
+                    // Jamia stats ko sort karke top 3 nikalna
+                    let sortedJamia = Object.keys(jamiaStats).map(name => {
+                        const s = jamiaStats[name];
+                        const hazir = s.total - s.ghaib;
+                        return {
+                            name: name,
+                            perc: hazir > 0 ? (s.passed / hazir) * 100 : 0
+                        };
+                    }).sort((a, b) => b.perc - a.perc).slice(0, 3);
+                    
+                    // Agar 3 jamia hain to button dikhayein
+                    const top3Btn = document.getElementById('ra-top3-poster-btn');
+                    if (sortedJamia.length > 0) {
+                        top3Btn.classList.remove('hidden');
+                        top3Btn.onclick = () => generateTop3Poster(sortedJamia, examYear, examType);
+                    }
+            
+            } else if (layoutLevel === 'class') {
+                thead.innerHTML = `
+                    <tr class="bg-gray-200 text-sm">
+                        <th class="border p-3">جامعہ</th><th class="border p-3">درجہ</th>
+                        <th class="border p-3">ممتاز مع الشرف</th><th class="border p-3">ممتاز</th>
+                        <th class="border p-3">جید جدا</th><th class="border p-3">جید</th>
+                        <th class="border p-3">مقبول</th><th class="border p-3">ضمنی</th>
+                        <th class="border p-3 text-red-600">ناکام</th><th class="border p-3">غیرحاضر</th>
+                        <th class="border p-3">کل تعداد</th><th class="border p-3 text-blue-700">کل حاضر</th>
+                        <th class="border p-3 text-green-700">کامیاب</th><th class="border p-3 text-red-600">ناکام</th>
+                        <th class="border p-3">فیصد</th><th class="border p-3 no-print text-red-600">حذف</th>
+                    </tr>`;
+                latestDataMap.forEach((d) => {
+                    const total = (parseInt(d.mumtazSharf)||0) + (parseInt(d.mumtaz)||0) + (parseInt(d.jayyidJidda)||0) + (parseInt(d.jayyid)||0) + (parseInt(d.maqbool)||0) + (parseInt(d.majazZimni)||0) + (parseInt(d.nakam)||0) + (parseInt(d.ghaib)||0);
+                    const ghaib = parseInt(d.ghaib) || 0;
+                    const hazir = total - ghaib;
+                    const passed = (parseInt(d.mumtazSharf)||0) + (parseInt(d.mumtaz)||0) + (parseInt(d.jayyidJidda)||0) + (parseInt(d.jayyid)||0) + (parseInt(d.maqbool)||0);
+                    const failed = (parseInt(d.nakam)||0) + (parseInt(d.majazZimni)||0);
+                    const percent = hazir > 0 ? (passed / hazir) * 100 : 0;
+
+                    totals.kul += total; totals.hazir += hazir; totals.passed += passed; totals.nakam += failed;
+
+                    rowsHtml += `
+                                <tr class="hover:bg-gray-50 border-b text-center">
+                                    <td class="border p-3 font-bold text-right">${d.jamia}</td>
+                                    <td class="border p-3">${d.darjah || '-'}</td>
+                                    <td class="border p-3">${d.mumtazSharf || 0}</td>
+                                    <td class="border p-3">${d.mumtaz || 0}</td>
+                                    <td class="border p-3">${d.jayyidJidda || 0}</td>
+                                    <td class="border p-3">${d.jayyid || 0}</td>
+                                    <td class="border p-3">${d.maqbool || 0}</td>
+                                    <td class="border p-3">${d.majazZimni || 0}</td>
+                                    <td class="border p-3 text-red-600">${d.nakam || 0}</td>
+                                    <td class="border p-3">${d.ghaib || 0}</td>
+                                    <td class="border p-3 font-bold">${total}</td>
+                                    <td class="border p-3 text-blue-700 font-bold">${hazir}</td>
+                                    <td class="border p-3 text-green-700 font-bold">${passed}</td>
+                                    <td class="border p-3 text-red-600 font-bold">${failed}</td>
+                                    <td class="border p-3 bg-teal-50 font-bold text-teal-700">${percent.toFixed(2)}%</td>
+                                    <td class="border p-3 font-bold" style="color:${getKefiyatColor(percent, 'class')}">
+                                        ${getJamiaKefiyat(percent, 'class')}
+                                    </td>
+                                    <td class="border p-3 no-print">
+                                        <button onclick="editEntry('${d.docId}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
+                                        <button onclick="deleteEntry('${d.docId}', 'class_wise_results')" class="text-red-600"><i class="fas fa-trash-alt"></i></button>
+                                    </td>
+                                </tr>`;
+                });
+                const overallPerc = totals.hazir > 0 ? (totals.passed / totals.hazir) * 100 : 0;
+                    tfoot.innerHTML = `
+                        <tr>
+                            <td colspan="10" class="p-3 text-right">TOTAL SUMMARY</td>
+                            <td>${totals.kul}</td>
+                            <td>${totals.hazir}</td>
+                            <td>${totals.passed}</td>
+                            <td>${totals.nakam}</td>
+                            <td>${overallPerc.toFixed(2)}%</td>
+                            <td class="font-bold" style="color:${getKefiyatColor(overallPerc, 'class')}">
+                                ${getJamiaKefiyat(overallPerc, 'class')}
+                            </td>
+                            <td class="no-print">-</td>
+                        </tr>`;
+            } else if (layoutLevel === 'teacher') {
+                // Table head mein 'Action' column ko thoda bada kiya gaya hai
+                thead.innerHTML = `
+                    <tr class="bg-gray-200">
+                        <th class="border p-3">جامعہ</th><th class="border p-3">استاد</th>
+                        <th class="border p-3">مضمون</th><th class="border p-3">درجہ</th>
+                        <th class="border p-3">کل</th><th class="border p-3 text-green-700">کامیاب</th>
+                        <th class="border p-3 text-red-600">ناکام</th><th class="border p-3">فیصد</th>
+                        <th class="border p-3">کیفیت</th><th class="border p-3 bg-teal-100">مجموعی</th>
+                        <th class="border p-3 no-print w-32">ایکشن</th>
+                    </tr>`;
+
+                latestDataMap.forEach((d) => {
+                    if (d.data && Array.isArray(d.data)) {
+                        d.data.forEach((tEntry, tIdx) => {
+                            const periods = tEntry.periods || [];
+                            const pCount = periods.length || 1;
+                            let tT = 0, tP = 0;
+                            
+                            periods.forEach(p => { 
+                                tT += parseInt(p.total) || 0; 
+                                tP += parseInt(p.passed) || 0; 
+                            });
+                            
+                            const tPer = tT > 0 ? (tP / tT) * 100 : 0;
+                            const tCol = getKefiyatColor(tPer);
+                            const majmooiKefiyat = getJamiaKefiyat(tPer); // Majmooi Kefiyat check karne ke liye
+
+                            totals.kul += tT; 
+                            totals.passed += tP;
+
+                            periods.forEach((p, pIdx) => {
+                                const f = (parseInt(p.total) - parseInt(p.passed)) || 0;
+                                
+                                rowsHtml += `
+                                    <tr class="hover:bg-gray-50 border-b text-center">
+                                        ${pIdx === 0 ? `<td class="border p-3 font-bold align-middle text-right" rowspan="${pCount}">${d.jamia}</td>` : ''}
+                                        ${pIdx === 0 ? `<td class="border p-3 font-bold align-middle text-blue-700" rowspan="${pCount}">${tEntry.teacher || "-"}</td>` : ''}
+                                        <td class="border p-3 text-right">${p.subject || '-'}</td>
+                                        <td class="border p-3">${p.class || p['class'] || '-'}</td>
+                                        <td class="border p-3">${p.total || '0'}</td>
+                                        <td class="border p-3 text-green-700">${p.passed || '0'}</td>
+                                        <td class="border p-3 text-red-600">${f}</td>
+                                        <td class="border p-3 font-bold">${p.percentage || '0%'}</td>
+                                        <td class="border p-3">${p.kaifiyat || '-'}</td>
+                                        ${pIdx === 0 ? `
+                                            <td class="border p-3 bg-teal-50 align-middle font-bold" rowspan="${pCount}">
+                                                <div style="color:${tCol}">${tPer.toFixed(1)}%</div>
+                                                <div class="text-[11px]" style="color:${tCol}">${majmooiKefiyat}</div>
+                                            </td>` : ''}
+                                            
+                                        <td class="border p-3 align-middle no-print">
+                                            <div class="flex flex-col gap-1.5 items-center justify-center">
+                                                <!-- Row / Subject Delete Button -->
+                                                <button onclick="deleteSubjectRow('${d.docId}', ${tIdx}, ${pIdx})" class="bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 border border-orange-200 w-full py-1 px-2 rounded text-[11px] font-bold shadow-sm flex items-center justify-center gap-1 transition-colors" title="Sirf ye subject delete karein">
+                                                    <i class="fas fa-eraser"></i> مضمون حذف
+                                                </button>
+                                                
+                                                ${pIdx === 0 ? `
+                                                <!-- Full Record / Teacher Delete Button -->
+                                                <button onclick="deleteEntry('${d.docId}', 'asatiza_wise_results')" class="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200 w-full py-1 px-2 rounded text-[11px] font-bold shadow-sm flex items-center justify-center gap-1 transition-colors" title="Pura record delete karein">
+                                                    <i class="fas fa-trash-alt"></i> مکمل حذف
+                                                </button>` : ''}
+
+                                                ${pIdx === 0 && majmooiKefiyat.includes('ممتاز') ? `
+                                                <!-- Appreciation Letter Button (Sirf Mumtaz walo ke liye) -->
+                                                <button onclick="generateAppreciationLetter('${tEntry.teacher || '-'}', '${d.jamia}', '${examType}', '${examYear}')" class="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 hover:text-yellow-800 border border-yellow-300 w-full py-1 px-2 rounded text-[11px] font-bold shadow-sm flex items-center justify-center gap-1 mt-1 transition-colors" title="Appreciation Letter Download Karein">
+                                                    <i class="fas fa-award"></i> تعریفی سند
+                                                </button>` : ''}
+                                            </div>
+                                        </td>
+                                    </tr>`;
+                            });
+                        });
+                    }
+                });
+                const overallPerc = totals.kul > 0 ? (totals.passed / totals.kul) * 100 : 0;
+                tfoot.innerHTML = `<tr><td colspan="4" class="p-3 text-right">TOTAL SUMMARY</td><td>${totals.kul}</td><td>${totals.passed}</td><td>${totals.kul - totals.passed}</td><td>${overallPerc.toFixed(2)}%</td><td>${getJamiaKefiyat(overallPerc)}</td><td colspan="2">-</td></tr>`;
+            }
+    // --- Baki ka purana code upar wese hi rahega ---
+
+else if (layoutLevel === 'wazahat') {
+    let totalPending = 0;
+    let totalSubmitted = 0;
+    let wazahatRows = "";
+
+    latestDataMap.forEach((d) => {
+        if (d.data && Array.isArray(d.data)) {
+            d.data.forEach((tEntry) => {
+                const periods = tEntry.periods || [];
+                periods.forEach((p) => {
+                    let percVal = parseFloat(String(p.percentage || 0).replace('%', ''));
+                    
+                    if (percVal < 70) {
+                        const rawSubject = (p.subject || '-').trim();
+                        const darjah = (p.class || p.darjah || '-').trim();
+                        // Unique key banane ke liye Subject aur Darjah dono ko mila dein
+                        const subjectKey = (rawSubject + "_" + darjah).replace(/[\.\s]/g, '_');
+                        
+                        let finalWazahatText = "";
+                        let keyToDelete = subjectKey; 
+                        let isLegacy = false;
+                        
+                        // --- BULLETPROOF SMART SEARCH START ---
+                        if (d.wazahat_map) {
+                            // Helper: Faltu spaces aur symbols hata kar completely saaf karke match karne ke liye
+                            const normalize = (str) => String(str || "").replace(/[\s_.-]/g, '').trim().toLowerCase();
+                            const normSubj = normalize(rawSubject);
+                            const normTeacher = normalize(tEntry.teacher);
+
+                            // 1. Direct match (Pehli koshish)
+                            if (d.wazahat_map[subjectKey]) {
+                                finalWazahatText = d.wazahat_map[subjectKey];
+                                keyToDelete = subjectKey;
+                            } 
+                            else if (d.wazahat_map[rawSubject]) {
+                                finalWazahatText = d.wazahat_map[rawSubject];
+                                keyToDelete = rawSubject;
+                            } 
+                            else {
+                                // 2. Fuzzy Match (Agar spaces ya format thoda alag ho gaya ho)
+                                for (let key in d.wazahat_map) {
+                                    let normKey = normalize(key);
+                                    
+                                    // Agar database ki key mein subject ka naam chhupa hai (Bina spaces ke)
+                                    if (normKey === normSubj || normKey.includes(normSubj) || normSubj.includes(normKey)) {
+                                        
+                                        // Extra Check: Agar key mein teacher ka naam bhi hai, to usay match karein
+                                        if (normKey.includes(normTeacher) || normKey === normSubj) {
+                                            finalWazahatText = d.wazahat_map[key];
+                                            keyToDelete = key;
+                                            break;
+                                        } else {
+                                            // Fallback: Agar upar match na ho, to ye final option hai
+                                            finalWazahatText = d.wazahat_map[key];
+                                            keyToDelete = key;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Purana single field 'wazahat' check karein
+                        if (!finalWazahatText && d.wazahat) {
+                            finalWazahatText = d.wazahat;
+                            isLegacy = true;
+                        }
+                        // --- BULLETPROOF SMART SEARCH END ---
+
+                        const hasWazahat = finalWazahatText && finalWazahatText.trim().length > 2;
+                        
+                        // 🌟 Reset/Delete Button (Waisa hi rahega)
+                        const specificWazahat = hasWazahat 
+                            ? `<div class="flex flex-col gap-1">
+                                 <div class="bg-green-50 p-2 rounded border border-green-200 text-green-900 text-right shadow-sm" style="direction:rtl; font-family: sans-serif;">${finalWazahatText}</div>
+                                 <button onclick="deleteWazahat('${d.docId}', '${keyToDelete}', ${isLegacy})" class="self-end text-[11px] bg-red-50 text-red-600 hover:bg-red-600 hover:text-white px-2 py-1 rounded border border-red-200 transition shadow-sm mt-1">
+                                     <i class="fas fa-trash-alt"></i> Reset
+                                 </button>
+                               </div>`
+                            : `<span class="text-red-500 font-bold italic animate-pulse">...Pending</span>`;
+
+                        let zimmedarComment = "";
+                        if (d.zimmedar_comments) {
+                            zimmedarComment = d.zimmedar_comments[subjectKey] || d.zimmedar_comments[rawSubject] || "";
+                        }
+
+                        if (hasWazahat) totalSubmitted++; else totalPending++;
+
+                        wazahatRows += `
+                            <tr class="hover:bg-red-50 border-b border-red-100 text-center">
+                                <td class="border p-3 font-bold text-right text-[10px]">${d.jamia}</td>
+                                <td class="border p-3 text-blue-700 font-bold text-xs">${tEntry.teacher || "-"}</td>
+                                <td class="border p-3 text-right text-xs">
+                                    ${rawSubject} <br>
+                                    <small class="text-gray-500">(${darjah})</small>
+                                </td>
+                                <td class="border p-3 text-red-600 font-bold text-sm">${percVal.toFixed(1)}%</td>
+                                <td class="border p-3 font-bold text-xs" style="color:${getKefiyatColor(percVal, 'teacher')}">
+                                    ${getJamiaKefiyat(percVal, 'teacher')}
+                                </td>
+                                <td class="border p-2 text-[13px] italic text-gray-700 ${hasWazahat ? 'bg-green-50/20' : 'bg-yellow-50/20'}">
+                                    <div class="max-h-32 overflow-y-auto" style="min-width:280px; white-space: pre-wrap; direction: rtl;">
+                                        ${specificWazahat}
+                                    </div>
+                                </td>
+                                <td class="border p-3 text-sm">
+                                    <div class="flex flex-col gap-1">
+                                        <span class="text-indigo-600 font-semibold text-[11px] text-right">${zimmedarComment}</span>
+                                        <button onclick="addZimmedarComment('${d.docId}', '${subjectKey}')" 
+                                                class="text-[10px] text-gray-400 hover:text-indigo-600 no-print border border-dashed rounded p-1 mt-1">
+                                            <i class="fas fa-edit"></i> Comment
+                                        </button>
+                                    </div>
+                                </td>
+                                <td class="border p-3 no-print">
+                                    <button onclick="sendWazahatLink('${d.docId}', '${tEntry.teacher}', '${rawSubject}', '${percVal.toFixed(1)}', '${getJamiaKefiyat(percVal, 'teacher')}', '${darjah}')" 
+                                            class="bg-green-600 hover:bg-green-700 text-white px-2 py-2 rounded text-[10px] flex items-center gap-1 mx-auto shadow-sm">
+                                        <i class="fab fa-whatsapp"></i> Link
+                                    </button>
+                                </td>
+                            </tr>`;
+                    }
+                });
+            });
+        }
+    });
+
+    thead.innerHTML = `
+    <tr class="bg-gray-800 text-white">
+        <th colspan="8" class="p-2 text-center text-sm font-sans">
+            Total Cases: <span class="text-yellow-400">${totalPending + totalSubmitted}</span> | 
+            Received: <span class="text-green-400">${totalSubmitted}</span> | 
+            Pending: <span class="text-red-400">${totalPending}</span>
+        </th>
+    </tr>
+    <tr class="bg-red-50 text-red-900 text-xs">
+        <th class="border p-3">جامعہ</th>
+        <th class="border p-3">استاد</th>
+        <th class="border p-3">مضمون / درجہ</th>
+        <th class="border p-3">فیصد</th>
+        <th class="border p-3">کیفیت</th>
+        <th class="border p-3">وضاحت (Explanation)</th>
+        <th class="border p-3 text-indigo-700">تعلیمی ذمہ دار کا تبصرہ</th> 
+        <th class="border p-3 no-print">ایکشن</th>
+    </tr>`;
+
+    rowsHtml = wazahatRows;
+}
+
+            tbody.innerHTML = rowsHtml || `<tr><td colspan="15" class="py-10 text-red-500 font-bold bg-white text-center">کوئی ریکارڈ نہیں ملا۔</td></tr>`;
+            subtitle.textContent = `${examType} | سال: ${examYear}`;
+            loader.classList.add('hidden');
+            reportArea.classList.remove('hidden');
+
+           document.getElementById('ra-download-excel').onclick = () => {
+    // Check karein ke XLSX library load hui hai ya nahi
+    if (window.XLSX) {
+        const table = document.getElementById('ra-data-table');
+        const wb = XLSX.utils.table_to_book(table, { sheet: "Analysis" });
+        XLSX.writeFile(wb, `Result_${layoutLevel}_${examYear}.xlsx`);
+    } else {
+        alert("Excel library (SheetJS) load nahi hui. Internet connection check karein.");
+    }
+};
+
+            document.getElementById('ra-download-image').onclick = async () => {
+                if(window.html2canvas) {
+                    const canvas = await window.html2canvas(document.getElementById('ra-report-area'), { scale: 2, useCORS: true });
+                    const link = document.createElement("a");
+                    link.download = `Result_${layoutLevel}_${examYear}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                } else { alert("Download library load nahi hui."); }
+            };
+
+        } catch (err) {
+            console.error(err); loader.classList.add('hidden'); alert("Masla aaya: " + err.message);
+        }
+    };
+
+    document.getElementById('ra-show-btn').onclick = () => window.fetchResultData();
+}
+// Function mein 'darjah' parameter add kiya gaya hai
+// Function mein 'darjah' ka izafa kiya gaya hai
+window.sendWazahatLink = (docId, teacherName, subject, percentage, kefiyat, darjah) => {
+    const repoName = "Majlis-Talimi-Umoor-India";
+    const baseUrl = new URL("teacher-wazahat.html", location.href).href; // domain-independent
+    
+    // Yahan params mein &class= joda gaya hai
+    const params = `id=${docId}&teacher=${encodeURIComponent(teacherName)}&subject=${encodeURIComponent(subject)}&perc=${encodeURIComponent(percentage)}&kef=${encodeURIComponent(kefiyat)}&class=${encodeURIComponent(darjah)}`;
+    
+    const fullLink = `${baseUrl}?${params}`;
+    
+    const message = `*نوٹس برائے وضاحت (Official Notification)*\n\n` +
+                    `محترم ${teacherName} صاحب،\n` +
+                    `آپ کے درجہ *${darjah}* کے مضمون *(${subject})* کا رزلٹ کمزور پایا گیا ہے۔\n\n` +
+                    `*تفصیلات:*\n` +
+                    `فیصد: *${percentage}*\n` +
+                    `کیفیت: *${kefiyat}*\n\n` +
+                    `براہِ کرم اس لنک پر کلک کرکے اپنی وضاحت جمع کرائیں:\n${fullLink}\n\n` +
+                    `شکریہ۔`;
+    
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+};
+window.addZimmedarComment = async (docId, subjectKey) => {
+    const comment = prompt("Talimi Zimmedar ka comment yahan likhein:");
+    if (comment === null) return; // Cancel handle
+
+    try {
+        const { updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+        const docRef = doc(window.db, "asatiza_wise_results", docId);
+        
+        // Dynamic key for nested object: zimmedar_comments.subject_name
+        const updatePath = {};
+        updatePath[`zimmedar_comments.${subjectKey}`] = comment;
+
+        await updateDoc(docRef, updatePath);
+        alert("Comment save ho gaya!");
+        
+        // Refresh Table
+        if (window.fetchResultData) await window.fetchResultData();
+    } catch (err) {
+        alert("Galti: " + err.message);
+    }
+};
+window.generateTop3Poster = async (topData, year, exam) => {
+    // State Name Popup (Sirf ek baar)
+    const stateName = prompt("Apni State ka naam likhein (e.g., J&K, Bihar):");
+    if (!stateName) {
+        alert("State ka naam zaroori hai!");
+        return;
+    }
+
+    const posterDiv = document.createElement('div');
+    posterDiv.style.position = 'fixed';
+    posterDiv.style.top = '-5000px';
+    posterDiv.style.width = '700px'; 
+    posterDiv.style.height = '1000px';
+    document.body.appendChild(posterDiv);
+
+    posterDiv.innerHTML = `
+        <div id="final-poster" style="width:100%; height:100%; background: #ffffff; padding: 40px; color: #064e3b; font-family: 'Segoe UI', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; position: relative; overflow: hidden;">
+            
+            <div style="position:absolute; top:-60px; left:-60px; width:250px; height:250px; background:#f0f4f2; border-radius:50%; z-index:0;"></div>
+            <div style="position:absolute; bottom:-60px; right:-60px; width:250px; height:250px; background:#fffdf5; border-radius:50%; z-index:0;"></div>
+
+            <div style="position:relative; z-index:1; margin-top: 20px;">
+                <div style="color: #fbbf24; font-size: 28px; letter-spacing: 5px;">⭐⭐⭐</div>
+                <h2 style="font-size: 48px; margin: 10px 0 5px 0; font-weight: 900; text-transform: uppercase; letter-spacing: 2px;">ANNUAL EXAM</h2>
+                <p style="font-size: 32px; font-weight: bold; margin: 0; color: #064e3b; border-bottom: 3px solid #fbbf24; display: inline-block; padding: 0 20px;">${year}</p>
+                
+                <div style="margin-top: 30px;">
+                    <p style="font-size: 18px; text-transform: uppercase; letter-spacing: 4px; color: #888; margin-bottom: 5px;">Proudly Announcing</p>
+                    <h1 style="font-size: 110px; line-height: 0.9; margin: 0; font-weight: 900; color: #064e3b;">TOP 3</h1>
+                    <p style="font-size: 22px; font-style: italic; color: #064e3b; margin-top: 15px; font-weight: 600;">Ilm ka Safar, Kamyabi ki Manzil</p>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: center; align-items: flex-end; gap: 15px; margin-top: 40px; flex: 1; position:relative; z-index:1;">
+                
+                <div style="width: 190px; text-align: center;">
+                    <div style="background: white; border: 1px solid #eee; border-radius: 25px; padding: 25px 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); position: relative;">
+                        <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); width: 70px; height: 70px; background: #BDC3C7; border: 6px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">2</div>
+                        <p style="font-size: 13px; color: #999; margin-top: 30px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Jamia-tul-Madina</p>
+                        <h3 style="font-size: 22px; font-weight: 900; margin: 8px 0; color: #064e3b; height: 30px; overflow: hidden;">${topData[1]?.name || 'N/A'}</h3>
+                        <div style="width: 40px; height: 2px; background: #f0f0f0; margin: 15px auto;"></div>
+                        <p style="font-size: 11px; color: #aaa; margin: 0; letter-spacing: 1px;">PERCENTAGE</p>
+                        <p style="font-size: 26px; font-weight: 900; color: #064e3b; margin-top: 5px;">${topData[1]?.perc.toFixed(2)}%</p>
+                    </div>
+                    <div style="height: 35px; background: #95a5a6; border-radius: 0 0 15px 15px; margin: 0 12px; opacity: 0.8;"></div>
+                </div>
+
+                <div style="width: 230px; text-align: center; z-index: 2;">
+                    <div style="background: white; border: 2px solid #fbbf24; border-radius: 30px; padding: 35px 10px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); position: relative;">
+                        <div style="position: absolute; top: -45px; left: 50%; transform: translateX(-50%); width: 90px; height: 90px; background: #fbbf24; border: 8px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 40px; font-weight: bold; box-shadow: 0 8px 20px rgba(251,191,36,0.3);">1</div>
+                        <p style="font-size: 14px; color: #999; margin-top: 40px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Jamia-tul-Madina</p>
+                        <h3 style="font-size: 26px; font-weight: 900; margin: 8px 0; color: #064e3b; height: 35px; overflow: hidden;">${topData[0]?.name || 'N/A'}</h3>
+                        <div style="width: 50px; height: 3px; background: #fbbf24; margin: 15px auto;"></div>
+                        <p style="font-size: 12px; color: #aaa; margin: 0; letter-spacing: 1px;">PERCENTAGE</p>
+                        <p style="font-size: 32px; font-weight: 900; color: #064e3b; margin-top: 5px;">${topData[0]?.perc.toFixed(2)}%</p>
+                        <div style="margin-top: 15px; font-size: 24px;">🏆</div>
+                    </div>
+                    <div style="height: 55px; background: #d4af37; border-radius: 0 0 20px 20px; margin: 0 8px;"></div>
+                </div>
+
+                <div style="width: 190px; text-align: center;">
+                    <div style="background: white; border: 1px solid #eee; border-radius: 25px; padding: 25px 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); position: relative;">
+                        <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); width: 70px; height: 70px; background: #E67E22; border: 6px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: bold; box-shadow: 0 4px 12px rgba(230,126,34,0.2);">3</div>
+                        <p style="font-size: 13px; color: #999; margin-top: 30px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Jamia-tul-Madina</p>
+                        <h3 style="font-size: 22px; font-weight: 900; margin: 8px 0; color: #064e3b; height: 30px; overflow: hidden;">${topData[2]?.name || 'N/A'}</h3>
+                        <div style="width: 40px; height: 2px; background: #f0f0f0; margin: 15px auto;"></div>
+                        <p style="font-size: 11px; color: #aaa; margin: 0; letter-spacing: 1px;">PERCENTAGE</p>
+                        <p style="font-size: 26px; font-weight: 900; color: #064e3b; margin-top: 5px;">${topData[2]?.perc.toFixed(2)}%</p>
+                    </div>
+                    <div style="height: 25px; background: #d35400; border-radius: 0 0 15px 15px; margin: 0 12px; opacity: 0.8;"></div>
+                </div>
+            </div>
+
+            <div style="position:relative; z-index:1; margin-bottom: 30px;">
+                <h2 style="font-size: 38px; font-weight: 900; margin: 0; color: #064e3b; letter-spacing: 2px; text-transform: uppercase;">Majlis Talimi Umoor</h2>
+                <p style="font-size: 22px; font-weight: bold; color: #fbbf24; margin: 5px 0 0 0; text-transform: uppercase; letter-spacing: 1px;">${stateName} STATE</p>
+            </div>
+
+        </div>
+    `;
+
+    // Download Logic
+    if(window.html2canvas) {
+        const canvas = await html2canvas(posterDiv.querySelector('#final-poster'), { 
+            scale: 4, // More Quality
+            useCORS: true 
+        });
+        const link = document.createElement("a");
+        link.download = `Top3_Madina_${stateName}_${year}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        document.body.removeChild(posterDiv);
+    }
+};
+
+// --- APPRECIATION LETTER FUNCTION ---
+window.generateAppreciationLetter = async (teacherName, jamiaName, examType, examYear) => {
+    // State Name Popup
+    const stateName = prompt("Apni State ka naam likhein (e.g., Rajasthan, Bihar):", "Rajasthan");
+    if (!stateName) return;
+
+    const letterDiv = document.createElement('div');
+    letterDiv.style.position = 'fixed';
+    letterDiv.style.top = '-9999px';
+    letterDiv.style.width = '800px'; 
+    letterDiv.style.height = '1130px'; 
+    document.body.appendChild(letterDiv);
+
+    // Date Format: DD Month YYYY
+    const currentDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    
+    // Exam English Name aur Year
+    let engExamType = examType.includes("سالانہ") ? "ANNUAL RESULT" : "HALF-YEARLY RESULT";
+    let shortYear = examYear.split('-')[0] || examYear;
+
+    letterDiv.innerHTML = `
+        <div id="final-letter" style="width: 100%; height: 100%; background-color: #ffffff; position: relative; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; box-sizing: border-box; padding: 60px;">
+            
+            <!-- Border and Corner Designs -->
+            <div style="position: absolute; top: 20px; left: 20px; right: 20px; bottom: 20px; border: 2px solid #c29d5b; z-index: 1;"></div>
+            
+            <!-- Top Left Corner -->
+            <div style="position: absolute; top: 0; left: 0; width: 220px; height: 220px; background: #0b1a30; transform: rotate(45deg) translate(-110px, -110px); z-index: 2;"></div>
+            <div style="position: absolute; top: 15px; left: 30px; width: 150px; height: 8px; background: #c29d5b; transform: rotate(-45deg); z-index: 3;"></div>
+
+            <!-- Bottom Right Corner -->
+            <div style="position: absolute; bottom: 0; right: 0; width: 260px; height: 260px; background: #0b1a30; transform: rotate(45deg) translate(130px, 130px); z-index: 2;"></div>
+            <div style="position: absolute; bottom: 40px; right: 10px; width: 200px; height: 8px; background: #c29d5b; transform: rotate(-45deg); z-index: 3;"></div>
+            
+            <!-- Bottom Left Decorative Lines -->
+            <div style="position: absolute; bottom: 40px; left: 40px; width: 80px; height: 80px; border-bottom: 2px solid #c29d5b; border-left: 2px solid #c29d5b; z-index: 2;"></div>
+            
+            <!-- Top Right Decorative Lines -->
+            <div style="position: absolute; top: 40px; right: 40px; width: 80px; height: 80px; border-top: 2px solid #c29d5b; border-right: 2px solid #c29d5b; z-index: 2;"></div>
+
+            <!-- Content -->
+            <div style="position: relative; z-index: 10; text-align: center; margin-top: 50px; padding: 0 40px;">
+                
+                <!-- Trophy Icon -->
+                <div style="font-size: 85px; color: #c29d5b; margin-bottom: 20px;">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                
+                <!-- Title -->
+                <h1 style="color: #0b1a30; font-size: 46px; font-weight: 900; letter-spacing: 2px; margin: 0; margin-bottom: 10px;">APPRECIATION LETTER</h1>
+                
+                <!-- Subtitle (Exam Type & Year) -->
+                <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 40px;">
+                    <div style="height: 2px; width: 50px; background-color: #c29d5b;"></div>
+                    <h3 style="color: #c29d5b; font-size: 22px; font-weight: bold; margin: 0; letter-spacing: 1.5px;">${engExamType} ${shortYear}</h3>
+                    <div style="height: 2px; width: 50px; background-color: #c29d5b;"></div>
+                </div>
+
+                <!-- Teacher Details -->
+                <p style="color: #333; font-size: 20px; margin-bottom: 5px; font-weight: 600;">Mohtaram</p>
+                <h2 style="color: #0b1a30; font-size: 38px; font-weight: 800; margin: 0 0 10px 0;">${teacherName}</h2>
+                <p style="color: #444; font-size: 20px; margin-bottom: 45px; font-weight: 500;">Jamia: ${jamiaName}</p>
+
+                <!-- Letter Body (Matching Image Text) -->
+                <div style="text-align: left; line-height: 1.8; color: #222; font-size: 20px;">
+                    <p style="font-weight: 600; margin-bottom: 20px;">Assalamu Alaikum Wa Rahmatullahi Wa Barakatuh</p>
+                    
+                    <p style="margin-bottom: 20px;">
+                        Hamein yeh baat khushi aur musarrat ke saath pesh karte hue fakhr mehsoos ho raha hai ke aap ne ${engExamType} ${examYear} mein apni behtareen mehnat, lagan aur zimmedari ka muzahira karte hue <strong style="color: #c29d5b;">"Mumtaz Kefiyat"</strong> hasil ki hai.
+                    </p>
+                    
+                    <p style="margin-bottom: 35px;">
+                        Aap ki musalsal koshishon aur taleemi khidmaat ne jamia ki karkardagi ko behtar banane mein aham kirdar ada kiya hai. Is qabil-e-tareef kamyabi par hum aap ko dili mubarakbad pesh karte hain aur aap ke liye mazeed taraqqi aur kamyabi ki dua karte hain.
+                    </p>
+                    
+                    <!-- Dua Section -->
+                    <div style="display: flex; gap: 15px; align-items: flex-start; padding-left: 10px;">
+                        <i class="fas fa-praying-hands" style="color: #c29d5b; font-size: 28px; margin-top: 5px;"></i>
+                        <p style="margin: 0; font-weight: 500;">
+                            Allah Ta'ala aap ki khidmaat ko qubool farmaye aur mazeed barkat ata farmaye. Aameen.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Footer Signatures -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 80px; text-align: left;">
+                    
+                    <!-- Date Section -->
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <i class="far fa-calendar-alt" style="font-size: 35px; color: #0b1a30;"></i>
+                        <div>
+                            <div style="font-size: 16px; font-weight: bold; color: #555;">Date:</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #0b1a30;">${currentDate}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Department Section -->
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <i class="fas fa-book-open" style="font-size: 40px; color: #0b1a30;"></i>
+                        <div>
+                            <div style="font-size: 20px; font-weight: 900; color: #0b1a30; letter-spacing: 1px;">MAJLIS TALIMI UMOOR</div>
+                            <div style="font-size: 16px; font-weight: bold; color: #c29d5b; letter-spacing: 2px;">${stateName.toUpperCase()} STATE</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Download Image via html2canvas
+    if(window.html2canvas) {
+        try {
+            const canvas = await html2canvas(letterDiv.querySelector('#final-letter'), { 
+                scale: 3, // Quality increase karne ke liye
+                useCORS: true 
+            });
+            const link = document.createElement("a");
+            link.download = `Appreciation_Letter_${teacherName.replace(/\\s+/g, '_')}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        } catch (e) {
+            alert("Image generate karne mein masla hua: " + e.message);
+        } finally {
+            document.body.removeChild(letterDiv); // Hidden div ko wapas delete kar dein
+        }
+    } else {
+        alert("html2canvas library load nahi hui hai.");
+        document.body.removeChild(letterDiv);
+    }
+};
+
+// 🌟 NAYA: Wazahat Delete/Reset karne ka function
+window.deleteWazahat = async (docId, keyToDelete, isLegacy) => {
+    if (!confirm('Kya aap waqai is wazahat ko delete kar ke form ko wapas reset karna chahte hain?')) return;
+
+    try {
+        // Firestore se deleteField import karein
+        const { updateDoc, doc, deleteField } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+        const docRef = doc(window.db, "asatiza_wise_results", docId);
+        
+        const updatePath = {};
+        
+        if (isLegacy) {
+            // Agar purane system ki wazahat hai
+            updatePath[`wazahat`] = deleteField();
+        } else {
+            // Naye map system ki wazahat (sirf specific subject ki wazahat udayega)
+            updatePath[`wazahat_map.${keyToDelete}`] = deleteField();
+            updatePath[`zimmedar_comments.${keyToDelete}`] = deleteField();
+        }
+
+        await updateDoc(docRef, updatePath);
+        alert("Wazahat delete ho gayi aur form reset ho gaya!");
+        
+        // Table ko automatically refresh karein
+        if (window.fetchResultData) await window.fetchResultData();
+    } catch (err) {
+        alert("Galti: " + err.message);
+    }
+};
