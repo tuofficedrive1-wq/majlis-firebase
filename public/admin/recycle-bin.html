@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recycle Bin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../shared/nav.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<div class="max-w-5xl mx-auto p-4">
+  <div class="flex items-center justify-between mb-4" dir="ltr">
+    <button data-back="admin.html" class="px-4 py-2 bg-white rounded-lg shadow text-sm font-semibold">← Admin Panel</button>
+    <h1 class="text-xl font-bold text-gray-800">🗑️ Recycle Bin (30 din)</h1>
+    <span id="count" class="text-sm text-gray-500"></span>
+  </div>
+  <input id="q" dir="ltr" placeholder="Search (collection / naam / email)…" class="w-full p-2 rounded-lg border mb-3">
+  <div id="msg" class="hidden p-3 rounded-lg mb-3 text-sm" dir="ltr"></div>
+  <div id="list" class="space-y-2" dir="ltr"><p class="text-gray-500">Loading…</p></div>
+</div>
+
+<script type="module">
+import { auth, db, ADMIN_UID } from "../shared/firebase-init.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { listBin, restoreFromBin, purgeBinItem } from "../shared/recycle-bin.js";
+
+let items = [];
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const say = (t, bad) => { const m = $("msg"); m.textContent = t; m.className = "p-3 rounded-lg mb-3 text-sm " + (bad ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"); setTimeout(() => m.classList.add("hidden"), 5000); };
+
+function render() {
+  const f = $("q").value.trim().toLowerCase();
+  const rows = items.filter(i => !f || JSON.stringify([i.srcCollection, i.label, i.deletedByEmail, i.reason]).toLowerCase().includes(f));
+  $("count").textContent = rows.length + " items";
+  $("list").innerHTML = rows.map(i => {
+    const when = i.deletedAt?.toDate ? i.deletedAt.toDate().toLocaleString() : "";
+    const preview = esc(JSON.stringify(i.data).slice(0, 160));
+    return `<div class="bg-white rounded-xl shadow p-3 ${i.restored ? "opacity-50" : ""}">
+      <div class="flex justify-between gap-2 flex-wrap">
+        <div><b>${esc(i.label || i.srcId)}</b>
+          <span class="text-xs bg-gray-200 rounded px-2 py-0.5 ml-1">${esc(i.srcCollection)}</span>
+          ${i.restored ? '<span class="text-xs bg-green-200 rounded px-2 py-0.5 ml-1">restored</span>' : ""}
+          ${i.reason ? `<span class="text-xs bg-yellow-200 rounded px-2 py-0.5 ml-1">${esc(i.reason)}</span>` : ""}
+        </div>
+        <div class="text-xs text-gray-500">${esc(when)} · ${esc(i.deletedByEmail || "")}</div>
+      </div>
+      <div class="text-xs text-gray-500 mt-1 break-all">${preview}…</div>
+      <div class="mt-2 flex gap-2">
+        <button data-act="restore" data-id="${i.binId}" class="px-3 py-1 bg-teal-600 text-white rounded-lg text-sm">Restore</button>
+        <button data-act="purge" data-id="${i.binId}" class="px-3 py-1 bg-red-600 text-white rounded-lg text-sm">Hamesha ke liye hatao</button>
+      </div></div>`;
+  }).join("") || '<p class="text-gray-500">Bin khali hai.</p>';
+}
+
+async function load() { items = await listBin(db); render(); }
+
+$("q").addEventListener("input", render);
+$("list").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  const id = b.dataset.id;
+  try {
+    if (b.dataset.act === "restore") {
+      try { await restoreFromBin(db, id); }
+      catch (err) {
+        if (err.message !== "EXISTS") throw err;
+        if (!confirm("Is ID par abhi doosra record maujood hai. Overwrite karein?")) return;
+        await restoreFromBin(db, id, { overwrite: true });
+      }
+      say("Restore ho gaya ✔");
+    } else {
+      if (!confirm("Yeh hamesha ke liye hat jayega. Pakka?")) return;
+      await purgeBinItem(db, id); say("Hamesha ke liye hata diya");
+    }
+    await load();
+  } catch (err) { console.error(err); say("Error: " + err.message, true); }
+});
+
+onAuthStateChanged(auth, u => {
+  if (!u || u.uid !== ADMIN_UID) { location.replace("../index.html"); return; }
+  load().catch(err => { $("list").innerHTML = ""; say("Load error: " + err.message, true); });
+});
+</script>
+</body>
+</html>
